@@ -1,1 +1,0 @@
-cat databases.txt| xargs -i echo "mysqldump -u wieland -p<PASSWORD> --no-data {} > {}.sql" | sh
