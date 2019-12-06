@@ -1,6 +1,7 @@
 #run all neccessary steps for RNA-seq analysis
 #main component of this script is the DESeq package which handles most of the RNA-seq analysis
-######
+
+#DEPRECATED!
 
 library("DESeq")
 library("Cairo")
@@ -11,6 +12,7 @@ library("gplots")
 library("gdata")
 library("genefilter")
 library("scatterplot3d")
+
 
 myargs       <- commandArgs(trailingOnly = TRUE)
 countFile    <- myargs[1]
@@ -33,6 +35,7 @@ cds = newCountDataSet(countTable, conditions)
 cds = estimateSizeFactors(cds)
 
 if (length(which(conditions == "0")) < 2 || length(which(conditions == "1")) < 2) {			#check if there are enough sample for cases and controls, otherwise estimateDispersions() throws an error without the blind argument
+	#it's possible that "cds = estimateDispersions(cds, method='blind')" throws an error, then one has to use fitType="local" as well
 	tryCatch({
 				cds = estimateDispersions(cds, method='blind')
 			},
@@ -93,7 +96,6 @@ ggplot(as.data.frame(pca$x), aes(PC1, PC2, color=pcax$gn)) 	+
 		coord_cartesian(xlim=c(min((pca$x)[,"PC1"]) - (2/100*(max((pca$x)[,"PC1"]) - min((pca$x)[,"PC1"]))), max((pca$x)[,"PC1"])+ (20/100*(max((pca$x)[,"PC1"]) - min((pca$x)[,"PC1"])))))	+
 		ggtitle(paste("Project: ", projectName, sep=""))
 dev.off()
-
 
 #DESeq: DE analysis
 res = nbinomTest(cds, "0", "1")
