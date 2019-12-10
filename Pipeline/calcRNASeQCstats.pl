@@ -1,8 +1,5 @@
 #!/usr/bin/perl
 
-############################################################
-## 27.05.2015 (Thomas Schwarzmayr): created
-############################################################
 ## calculate RNA-SeQC metrics for RNA sample
 
 use strict;
@@ -70,7 +67,6 @@ my $rnaseqcOut     = $params->{programs}->{rnaseqc}->{outputfolder};
 my $ref            = $params->{settings}->{$settings}->{reference};
 my $annotationfile = $params->{settings}->{$settings}->{gemannotation};
 my $rrnalist	   = $params->{settings}->{$settings}->{rrnalist};
-
 
 my $dir = dirname($outprefix);
 my $sampleFile = "$dir/sample.file";

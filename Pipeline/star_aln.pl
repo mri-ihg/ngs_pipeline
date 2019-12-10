@@ -124,10 +124,6 @@ if ($outprefix eq "") {
 }
 
 my $outDir = dirname($outprefix);
-#if (-d $outDir) {
-#	&Utilities::executeCommand("rm -rf $outDir", "Deleting existing output directory $outDir", $logger);
-#}
-#&Utilities::executeCommand("mkdir $outDir", "Creating output folder $outDir", $logger);
 
 my @infiles1 = split(",", $infile1);
 my @infiles2 = split(",", $infile2);
@@ -186,21 +182,6 @@ $command = "$samtools sort -\@ $threads -m $sammaxmem  $outprefix"."Aligned.out.
 &Utilities::executeCommand($command,"Sort BAM file:\n$command", $logger);
 
 
-##change to standard name DEPRICATED!!
-#my $tmpName = "$outprefix"."Aligned.sortedByCoord.out.bam";
-#$command = "ln -s $tmpName ";
-#$tmpName =~ s/bam$/sort.bam/;
-#$command .= "$tmpName";
-#&Utilities::executeCommand($command,"Create link:\n$command", $logger);
-
-#$command = "$starFusionProgramPath -S GAR0340Chimeric.out.sam -J GAR0340Chimeric.out.junction";
-
-#the last thing to do!
-#if (!$doDelete) {
-#	&deleteTempFiles();
-#}
-
-
 ###################################
 ##delete the temporary files if set
 ###################################
@@ -218,14 +199,6 @@ sub prepareSTARCommand() {
 	$c = "$starProgramPath";
 	$c .= " --runThreadN $threads";
 	$c .= " --genomeDir $starIndex";
-	#$c .= " --genomeLoad LoadAndRemove";	#not possible with --twopassMode Basic!!!
-#	A job with --genomeLoad LoadAndRemove option will behave as follows:
-#	If the genome is not in the shared memory, the job will load the genome.
-#	If genome is in the shared memory, the job will attach itself to the loaded genome.
-#	Other jobs with the same genome directory will be allowed to attach to it.
-#	At the exit, the job will check whether any other jobs are attached to the genome. If so, the genome will be left in memory. If not, the genome will be removed from memory.
-#	Note, that if a job with this option terminates prematurely, it will not be able to remove the genome from memory. 
-#	You will have to run another job with --genomeDir <...> --genomeLoad Remove options.
 	$c .= " --readFilesIn $infile1";
 	if ($infile2 ne "") {
 		$c .= " $infile2";

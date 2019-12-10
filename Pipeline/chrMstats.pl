@@ -100,7 +100,7 @@ if ( ! -e $fai )
 # TODO Insert here some check with the reference rRCRS
 
 # Reference command chain to use:
-#       $samtools mpileup --rf 3 --ff 3852 /data/isilon/seq/analysis/mtdnagatk/S0100/$i/mtDNAout/paired-endout/merged.rmdup.bam  -r $mtRegion | 
+#       $samtools mpileup --rf 3 --ff 3852 /PATHTO/S0100/$i/mtDNAout/paired-endout/merged.rmdup.bam  -r $mtRegion | 
 #			awk '{print $2" "$4}' | 
 #			$mtCoveragePlot "$i - mtDNA Coverage" "Position" "Read Depth" $i.cov.jpg ; 
 

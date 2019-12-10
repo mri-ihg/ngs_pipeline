@@ -197,7 +197,7 @@ generated as preliminary result which is then translated into vcf.
 
 =head1 AUTHOR
 
-Thomas Wieland 
+Thomas Wieland
 
 =cut
  

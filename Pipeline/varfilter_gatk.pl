@@ -48,7 +48,7 @@ my $forceActive = 0;
 my $emitRealBam = 0;
 
 # Use GVCF Block compression instead of BP_RESOLUTION
-my $useGVCFResolution = 0;
+my $useGVCFResolution = 1;
 
 GetOptions(
 "i=s"  => \$infiles,

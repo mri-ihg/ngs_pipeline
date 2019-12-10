@@ -14,7 +14,7 @@ use Tabix;
 use Data::Dumper;
 use List::Util qw(min max);
 
-my $prog_path = "PATHTO/Pipeline";
+my $prog_path = dirname( abs_path($0) );
 require $prog_path . "/Utilities.pm";
 require $prog_path . "/BEDRecord.pm";
 require $prog_path . "/SequenceDictionary.pm";

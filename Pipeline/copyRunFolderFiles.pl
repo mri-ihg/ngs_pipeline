@@ -12,14 +12,15 @@ use Log::Log4perl qw(get_logger :levels);
 my $prog_path = dirname( abs_path($0) );
 require $prog_path . "/Utilities.pm";
 
+my $params     = Utilities::getParams();
 # Config
-my $dbhost = "DBHOST"
-my $dbuser = "DBUSER";
-my $dbpw   = "DBPWD";
+my $dbhost = $params->{settings}->{hg19_test}->{exomedb}->{host};
+my $dbuser = $params->{settings}->{hg19_test}->{exomedb}->{user};
+my $dbpw   = $params->{settings}->{hg19_test}->{exomedb}->{password};
 
 
 my $flowcell       = "";
-my $runfolder      = "RUNFOLDER";
+my $runfolder      = $params->{settings}->{hg19_test}->{analysis}->{runfolder};
 my $outputfolder   = "";
 my $help           = 0;
 my $convertBam     = 0;
@@ -307,7 +308,8 @@ sub createLink {
 	my $casava18 = shift;
 
 	my $platform         = "Illumina";
-	my $sequencingCenter = "'SEQCENTER'";
+	my $sequencingCenter =
+	  "'Helmholtz Center Munich, Institute of Human Genetics'";
 
 	my @columns = split( ' ', $gerald );
 	if ( @columns > 1 ) {
@@ -386,7 +388,7 @@ sub createLink {
 					open( IN, "find -L $gerald -maxdepth 1 -name \"*\_L$formatedLane\_R1\_*.fastq.gz\" |");
 					while (<IN>) {
 						chomp;
-						my $command = "$java -Xmx4g -XX:ParallelGCThreads=1 -jar /PATHTO/picard.jar FastqToSam ";
+						my $command = "$java -Xmx4g -XX:ParallelGCThreads=1 -jar /usr/local/packages/seq/picard/picard.jar FastqToSam ";
 						$command .= "FASTQ=$_ ";
 						my $fastq2 = $_;
 						$fastq2 =~ s/_R1_/_R2_/;
@@ -454,7 +456,7 @@ sub createLink {
 				if(@miseq>1){		#apparently miseq run with samples not in database
 					foreach(@miseq){
 						my $command =
-"$java -Xmx4g -XX:ParallelGCThreads=1 -jar /PATHTO/picard.jar FastqToSam ";
+"$java -Xmx4g -XX:ParallelGCThreads=1 -jar /usr/local/packages/seq/picard/picard.jar FastqToSam ";
 						$command .= "FASTQ=$_ ";
 						my $fastq2 = $_;
 						$fastq2 =~ s/_R1_/_R2_/;
@@ -540,7 +542,7 @@ sub buildCommand {
 	
 	 
 	my $command =
-	  "$java -Xmx2g -XX:ParallelGCThreads=1 -jar /PATHTO/picard.jar FastqToSam ";
+	  "$java -Xmx2g -XX:ParallelGCThreads=1 -jar /usr/local/packages/seq/picard/picard.jar FastqToSam ";
 
 	my $fastq;
 

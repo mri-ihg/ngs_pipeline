@@ -31,7 +31,7 @@ require $pgrpath."/Utilities.pm";
 
 
 my $line     = "";
-#my $pgrpath = "/usr/local/packages/tools/solexa";
+#my $pgrpath = "SOLEXAPATH";
 my $type     = "";
 my $item1    = "";
 my $item2    = "";

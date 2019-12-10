@@ -86,7 +86,7 @@ and s.name like '$sampleName'";			#QUESTION: in DB, should we store name or idsa
 	$out->execute || exit $logger->error("$DBI::errstr");
 	if ($out->rows == 1) {
 		$inputSample = $out->fetchrow_array;
-		my $c = "find -L /PATHTO/S*/$inputSample/ChIP-Seqout/paired-endout/ -type f -name 'merged.bam'";			#maxdepth 2, otherwise it'd be possible that backupfolders like /old/sId/ could be found instead of the actual one
+		my $c = "find -L " . $params->{settings}->{hg19_test}->{analysis}->{folder}  . "/S*/$inputSample/ChIP-Seqout/paired-endout/ -type f -name 'merged.bam'";
 		$logger->info("CMD: $c");
 		open FIND, "$c | " or exit $logger->error("Error opening $c |");
 		my $loc = <FIND>;

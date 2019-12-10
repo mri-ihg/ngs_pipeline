@@ -242,7 +242,7 @@ sub getFileLocations {
 	open OUT, ">$resultFileLocation";
 	if ($ff eq "") {
 		foreach my $sId (@$sampleIdsRef) {
-			my $c = "find -L /PATHTOPROJECTFOLDER/S*/ -maxdepth 1 -type d -name $sId 2> /dev/null";			#maxdepth 2, otherwise it'd be possible that backupfolders like /old/sId/ could be found instead of the actual one
+			my $c = "find -L " . $params->{settings}->{hg19_test}->{analysis}->{folder} . "/S*/ -maxdepth 1 -type d -name $sId 2> /dev/null";			#maxdepth 2, otherwise it'd be possible that backupfolders like /old/sId/ could be found instead of the actual one
 			$logger->info("CMD: $c");
 			open FIND, "$c | " or exit $logger->error("Error opening $c |");
 			my $loc = <FIND>;

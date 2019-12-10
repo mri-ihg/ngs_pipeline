@@ -1,5 +1,7 @@
 #!/usr/bin/perl
 
+## insert the QC metrics from RNA-SeQC into the DB
+
 use strict;
 use warnings;
 use diagnostics;

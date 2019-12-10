@@ -77,10 +77,8 @@ Cairo(file=paste(outputFolder, "Peak_distance2TSS.png", sep="/"), width=720, hei
 plotDistToTSS(peakAnno, title="Distribution of transcription factor-binding loci\nrelative to TSS")
 dev.off()
 
-
 #annoData <- toGRanges(TxDb.Hsapiens.UCSC.hg19.knownGene, feature="CDS")
 annoData <- toGRanges(ensdb, feature="gene")
-
 
 aCR<-assignChromosomeRegion(db.rep, nucleotideLevel=FALSE, precedence=c("Promoters", "immediateDownstream", "fiveUTRs", "threeUTRs", "Exons", "Introns"),	TxDb=txdb)
 
@@ -98,4 +96,3 @@ write.csv(as.data.frame(unname(overlaps.anno)), file=paste(outputFolder, "anno.c
 Cairo(file=paste(outputFolder, "Peak_featurePie.png", sep="/"), width=720, height=480, bg="white", canvas="white", type="png")
 pie1(table(overlaps.anno$insideFeature))
 dev.off()
-

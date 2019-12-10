@@ -55,4 +55,5 @@ write.table(na.omit(GO.samp.up[order(GO.samp.up$padj, GO.samp.up$over_represente
 write.table(na.omit(GO.wall.down[order(GO.wall.down$padj, GO.wall.down$over_represented_pvalue),c(1,6,7,2,8)]), file=paste(goseqOutputFolder, paste(projectName, "downregulated","tsv", sep="."), sep="/"), sep="\t")
 write.table(na.omit(GO.samp.down[order(GO.samp.down$padj, GO.samp.down$over_represented_pvalue),c(1,6,7,2,8)]), file=paste(goseqOutputFolder, paste(projectName, "downregulated","samp","tsv", sep="."), sep="/"), sep="\t")
 
+
 save.image(paste(goseqOutputFolder, "session.RData", sep="/"))

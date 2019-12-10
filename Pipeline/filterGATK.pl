@@ -82,7 +82,7 @@ my $javalog = $outfile;
 $javalog    =~ s/vcf$/log/;
 
 # Deprecated arguments
-$logger->warning("Used one or more deprecated arguments. They are now ignored") if ( $dummy );
+$logger->info("Used one or more deprecated arguments. They are now ignored") if ( $dummy );
 
 # Getting parameters
 my $ref     = $params->{settings}->{$settings}->{reference};

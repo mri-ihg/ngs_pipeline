@@ -47,7 +47,7 @@ my $logger = Utilities::getLogger();
 $outdir = dirname($bamfile) if $outdir eq "";
 
 my $params 		  = Utilities::getParams();
-my $manta  		  = $params->{programs}->{manta}->{path};
+my $whamg  		  = $params->{programs}->{whamg}->{path};
 my $normalChrs  	  = $params->{settings}->{$settings}->{normalchromosomes};
 my $ref		 	  = $params->{settings}->{$settings}->{reference};
 
@@ -65,9 +65,8 @@ if($threads == -1){
 	}
 }
 
-
 #creating config file
-my $command = "$manta --bam=$bamfile --referenceFasta=$ref --runDir=$outdir";
+my $command = "$whamg --bam=$bamfile --referenceFasta=$ref --runDir=$outdir";
 
 #adding normal chromosomes as region
 open CHROMS, $normalChrs or exit $logger->error("Can't open normal chromosome BED file: $normalChrs!");
@@ -98,7 +97,7 @@ runWhamg.pl
 
 =head1 SYNOPSIS
 
- runWhamg.pl -b merged.rmdup.bam -o mantadir/ -se hg19_plus
+ runWhamg.pl -b merged.rmdup.bam -o whamgdir/ -se hg19_plus
 
 =head1 DESCRIPTION
 

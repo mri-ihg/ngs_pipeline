@@ -33,7 +33,6 @@ my $helptext = "
 -fe <file extension>		the file extionsion of the files to merge (default: $fileExtension)
 -h				show help
 ";
-#example call: perl /data/isilon2/users/scripts/eclipse_workspace_schwarzmayr/Pipeline/htseqOutputFileMerger.pl -as cases.txt -us controls.txt -cfn final.count -o /home/schwarzm/ihome/projects/rnaseq/huypens_mouse/HTSeq/ -condfn condition.out
 
 GetOptions(
 	"as=s" => \$caseFiles,

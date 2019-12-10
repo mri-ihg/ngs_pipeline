@@ -1,11 +1,5 @@
 #!/usr/bin/perl
 
-############################################################
-## 10.09.2013 (Thomas Schwarzmayr): created
-## 21.07.2014 (Thomas Schwarzmayr): bugfix of the getTranscriptLengthes() algorithm
-############################################################
-## calculates the FPKM value for a given sample
-
 use strict;
 use Getopt::Long qw(:config no_ignore_case);
 use File::Basename;

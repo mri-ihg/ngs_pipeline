@@ -1,9 +1,5 @@
 #!/usr/bin/perl
 
-############################################################
-## 15.07.2015 (Thomas Schwarzmayr): created
-############################################################
-
 use strict;
 use Getopt::Long qw(:config no_ignore_case);
 use File::Basename;
@@ -170,13 +166,8 @@ $command = &prepareTophatCommand();
 #start tophat2 alignment
 &Utilities::executeCommand($command,"Start tophat2 alignment with command:\n$command", $logger);
 
-
-
-
-
-
 #sort bam file
-$command ="cat /PATHTO/hg19.dict > $outDir/"."accepted_hits.header.sam";
+$command ="cat /data/mirror/goldenpath/hg19/chromosome/hg19.dict > $outDir/"."accepted_hits.header.sam";
 &Utilities::executeCommand($command,"Sort BAM file:\n$command", $logger);
 $command ="samtools view -H $outDir/"."accepted_hits.bam | grep \"\@RG\" >> $outDir/"."accepted_hits.header.sam";
 &Utilities::executeCommand($command,"Sort BAM file:\n$command", $logger);

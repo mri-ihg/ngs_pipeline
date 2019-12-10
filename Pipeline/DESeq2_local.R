@@ -1,6 +1,6 @@
 #run all neccessary steps for RNA-seq analysis
 #main component of this script is the DESeq2 package which handles most of the RNA-seq analysis
-######
+
 
 library("DESeq2")
 library("Cairo")
@@ -23,6 +23,7 @@ fpkmFile <- myargs[5]
 noCreateHeatMap <- myargs[6]
 
 countTable = read.table(countFile, header=T, row.names=1, check.names=F, quote="\"")
+#fpkmTable = read.table(fpkmFile, header=T, row.names=1, check.names=F, quote="\"")
 countTable = countTable[1:(nrow(countTable)-5),] 			#delete last 5 lines; includes unneeded information
 conditionTable = read.table(conditionFile, header=F, check.names=F, row.names=1)
 names(conditionTable)[1] <- paste("condition")
@@ -112,6 +113,7 @@ column.names <- paste(column.conditions, colnames(res.hm), sep=":")
 colnames(res.hm) <- column.names
 color.map <- function(mol.biol) { if (startsWith(mol.biol, "case", trim=T, ignore.case=T)) "grey50" else "grey80" }
 columncolors <- unlist(lapply(colnames(res.hm), color.map))
+#Cairo(file="/mnt/ifs2/seq/analysis/exomehg19/S0152/RNAseq/DE/GAR065x_analysis/GAR0654_6_8_vs_GAR0655_7_9/DESeq2/top100_DE_immuno.pdf", width=200, height=300,type="pdf", units="cm", dpi=300)
 Cairo(file=paste(outputFolder, "top100_de_HeatMap.png", sep="/"), width=800, height=1200, bg="white", canvas="white", type="png")
 heatmap.2(res.hm, col=greenred(200), key=T, keysize=1, density.info="none", trace="none",cexCol=2, cexRow=1, na.rm=T, main=paste("Project: ", projectName, sep=""), margin=c(15,15), ColSideColors=columncolors)
 dev.off()

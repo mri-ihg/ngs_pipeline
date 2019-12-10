@@ -97,8 +97,8 @@ my $getImportFiles_sql = qq{
 			P.snvsampleimportFinished=? and 
 			currentsettings=? and 
 			endtime<>0 and
-			S.idproject $DZHKomicsSQL (  select idproject from $coredb.project where pdescription="DZHKomicsPROJECTNAME" ) and
-			S.idproject $DZHKomicsSQL (  select idproject from $coredb.project where pdescription="DZHK_Omics_PlusPROJECTNAME" ) and  
+			S.idproject $DZHKomicsSQL (  select idproject from $coredb.project where pdescription="DZHKomics" ) and
+			S.idproject $DZHKomicsSQL (  select idproject from $coredb.project where pdescription="DZHK_Omics_Plus" ) and  
 			P.idpipeline in ( select max(idpipeline) from $coredb.pipeline group by idsample,currentsettings ) 
 		order by P.idpipeline desc 
 		limit $processLimit 

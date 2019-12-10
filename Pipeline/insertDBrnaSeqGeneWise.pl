@@ -1,5 +1,7 @@
 #!/usr/bin/perl
 
+## insert the counts and fpkm values in the database
+
 use strict;
 use warnings;
 use diagnostics;

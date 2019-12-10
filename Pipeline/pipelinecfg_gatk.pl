@@ -284,6 +284,8 @@ print OUT "libpair  : $libpair\n\n";
 &bam_merge;
 &varfilter;
 
+&deepVariant;
+
 &checkContamination;
 &transcriptStats;
 
@@ -1123,6 +1125,41 @@ sub varfilter {
 	}
 }
 
+
+sub deepVariant {
+	
+	if ( $vcf == 2 && $libtype eq "genomic" && $organism eq "human" )
+	{
+		print OUT "
+##############################################################
+# calls variant with DeepVariant
+##############################################################
+";
+		print OUT "pgr   : varfilter_deepvariant.pl\n";
+		print OUT "#infile\n";
+		print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/merged.rmdup.bam\n";
+		print OUT "# output directory\n";
+		print OUT "param : outdir : $outdir/$project/$sample/$folder/$subfolder/deepvariant\n";
+		print OUT "# Sample name\n";
+		print OUT "param : s : $sample\n";
+		print OUT "# Sample type\n";
+		print OUT "param : type : $libtype\n";
+	
+		print OUT "# settings\n";
+		print OUT "param : se : $settings\n";
+		print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
+		print OUT "dependson : bwa_merge_gatk.pl\n";
+		print OUT "slots : 8\n";
+		&printSlot("deepvariant");
+		
+		if ( $runs{deepvariant} == 1 ) {
+			print OUT "run\n";
+		}
+		else {
+			print OUT "#run\n";
+		}
+	} 
+}
 
 
 

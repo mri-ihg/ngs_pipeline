@@ -15,7 +15,7 @@ umask(002);
 my $prog_path = dirname( abs_path($0) );
 
 my $flowcell          = "";
-my $runfolder         = "PATHTO/runs/";
+my $runfolder         = "/data/runs/Runs/";
 my $projectfolder     = "";
 my $configfile        = $prog_path . "/conf.initAnalysis.xml";
 my $skiplanes         = "";
@@ -561,7 +561,7 @@ sub initSample {
 			my $gerald = "";
 
 			#############################################
-			#29.03.2012: include the possibility that $runfolder points to a directory that contains bam converted flowcells (e.g. in most cases /data/runs/Runs/SequenceBams)
+			#29.03.2012: include the possibility that $runfolder points to a directory that contains bam converted flowcells
 			#
 			#
 			$gerald = qx/ls -d $fcpath\/Sample_$sample  2> \/dev\/null/;
@@ -923,9 +923,9 @@ qx/ls -d $fcpath\/Data\/Intensities\/BaseCalls\/GERALD* 2> \/dev\/null/;
 		#TW 24.02.2015: if $projectfolder is not given --> set based on $version
 		if($projectfolder eq ""){
 			if($version eq "gatk"){
-				$projectfolder = "/data/isilon/seq/analysis/exomehg19plus";
+				$projectfolder = $params->{settings}->{hg19_test}->{analysis}->{folder} . "plus";
 			}else{
-				$projectfolder = "/data/isilon/seq/analysis/exomehg19";      #default
+				$projectfolder = $params->{settings}->{hg19_test}->{analysis}->{folder};      #default
 			}
 		}
 		
@@ -1407,7 +1407,7 @@ The current status of running analysis can then be viewed by typing: checkForNew
      -) together with organism & library type: used settings (can be overwriten by specifying -se)
      -) together with library type: aligner --> bwa for genomic DNA using "vcf" and bwa mem using "gatk"; star for RNA using "vcf" (not specified for "gatk")
         (can be overwritten by specifying -al)
-     -) the default project folder: /data/isilon/seq/analysis/exomehg19 for "vcf" & /data/isilon/seq/analysis/exomehg19plus for "gatk"
+     -) the default project folder: /.../isilon/..../exomehg19 for "vcf" & /.../isilon/..../exomehg19plus for "gatk"
         (can be overwritten by specifying -p)
  -lt	<libtype>; only if -fs contains a sample id, possible entries: exomic, genomic, RNA, ChIP-Seq, 'ChIP-Seq RNA', hMeDIP, mtDNA, amplicon, MIP, ATAC-Seq
  

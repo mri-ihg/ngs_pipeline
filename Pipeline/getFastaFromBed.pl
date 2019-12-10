@@ -2,8 +2,14 @@
 
 use Getopt::Long qw(:config no_ignore_case);
 use Bio::DB::Sam;
+use File::Basename;
 
-my $ref = "PATHTO/hg19.fa";
+my $prog_path = dirname( abs_path($0) );
+require $prog_path."/Utilities.pm";
+
+my $params   = Utilities::getParams();
+my $ref = $params->{settings}->{hg19_test}->{reference};
+
 GetOptions(
 "i=s" => \$bedfile,
 "r=s" => \$ref,

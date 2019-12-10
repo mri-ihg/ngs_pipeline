@@ -226,7 +226,7 @@ while ( ($projectName, $sampleName) = $out->fetchrow_array ) {
 	chomp $sampleName;
 	if($projectName eq "S0248") {		#Schunkert
 		my $msg = Mail::Send->new(Subject => "Schunkert Sample Analyzed");
-		$msg->to('user@host.de');
+		$msg->to($params->{misc}->{email_ts});
 		my $fh = $msg->open;
 		print $fh "Sample $sampleName analyzed";
 		$fh->close or die "couldn't send whole message: $!\n";
