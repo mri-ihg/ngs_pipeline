@@ -92,7 +92,6 @@ if ( $logfile eq "" ) {
 }
 
 #get params
-my $params = Utilities::getParams();
 my $java   = $params->{programs}->{java}->{path};
 Utilities::initLogger( $logfile, $loglevel );
 my $logger = Utilities::getLogger();
@@ -198,7 +197,8 @@ sub linkFiles {
 				my $sample = $path[-1];
 				$sample =~ s/Sample_//;
 				
-				if ($sample =~ m/(.*)_/g) {			#for 10x libraries
+				#TODO: check in DB if sample is 10x library
+				if ($sample =~ m/(.*)_[1-4]{1}$/g) {			#for 10x libraries
 					$sample = $1;
 				}
 				

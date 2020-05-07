@@ -352,7 +352,7 @@ foreach my $key ( keys %elapsed_time )
 sub insertSVSample {
 	my $vcfline = shift;
 	
-	my ($cndosage,$cnscore1,$cnscore2,$cnscore3,$cnscore4,$cnunique,$pialleles,$pidp,$pipercentvar,$bddp,$bdor1,$bdor2,$lppe,$lpsr,$mtgt,$mtgq) = ("NULL","NULL","NULL","NULL","NULL","NULL","NULL","NULL","NULL","NULL","NULL","NULL","NULL","NULL","NULL","NULL");
+	my ($cndosage,$cnscore1,$cnscore2,$cnscore3,$cnscore4,$cnunique,$pialleles,$pidp,$pipercentvar,$bddp,$bdor1,$bdor2,$lppe,$lpsr,$mtgt,$mtgq,$sr,$ss) = ("NULL","NULL","NULL","NULL","NULL","NULL","NULL","NULL","NULL","NULL","NULL","NULL","NULL","NULL","NULL","NULL","NULL","NULL");
 	
 	
 	$cndosage     = $vcfline->{INFO}->{CNDOSAGE} if defined $vcfline->{INFO}->{CNDOSAGE};
@@ -371,6 +371,8 @@ sub insertSVSample {
 	$lpsr		  = $vcfline->{INFO}->{LPSR} if defined $vcfline->{INFO}->{LPSR};
 	$mtgt		  = $vcfline->{INFO}->{MTGT} if defined $vcfline->{INFO}->{MTGT};
 	$mtgq		  = $vcfline->{INFO}->{MTGQ} if defined $vcfline->{INFO}->{MTGQ};
+	$sr               = $vcfline->{INFO}->{SR} if defined $vcfline->{INFO}->{SR}; 
+	$ss               = $vcfline->{INFO}->{SS} if defined $vcfline->{INFO}->{SS}; 
 	
 	
 	# Recalculate or cure SVLEN	
@@ -398,8 +400,8 @@ sub insertSVSample {
 	
 	
 	#insert variant
-	my $sql = "insert into $svSampleTable (idsample,chrom,start,end,svtype,svlen,caller,cndosage,cnscore1,cnscore2,cnscore3,cnscore4,cnunique,pialleles,pidp,pipercentvar,bddp,bdor1,bdor2,lppe,lpsr,mtalleles,mtgq)
-	values                 ($idsample,'$vcfline->{CHROM}',$vcfline->{POS},$vcfline->{INFO}->{END},'$vcfline->{INFO}->{SVTYPE}',$vcfline->{INFO}->{SVLEN},'$vcfline->{INFO}->{CALLER}', $cndosage,$cnscore1,$cnscore2,$cnscore3,$cnscore4,$cnunique,$pialleles,$pidp,$pipercentvar,$bddp,$bdor1,$bdor2,$lppe,$lpsr,$mtgt,$mtgq)";
+	my $sql = "insert into $svSampleTable (idsample,chrom,start,end,svtype,svlen,caller,cndosage,cnscore1,cnscore2,cnscore3,cnscore4,cnunique,pialleles,pidp,pipercentvar,bddp,bdor1,bdor2,lppe,lpsr,mtalleles,mtgq,sr,ss)
+	values                 ($idsample,'$vcfline->{CHROM}',$vcfline->{POS},$vcfline->{INFO}->{END},'$vcfline->{INFO}->{SVTYPE}',$vcfline->{INFO}->{SVLEN},'$vcfline->{INFO}->{CALLER}', $cndosage,$cnscore1,$cnscore2,$cnscore3,$cnscore4,$cnunique,$pialleles,$pidp,$pipercentvar,$bddp,$bdor1,$bdor2,$lppe,$lpsr,$mtgt,$mtgq,$sr,$ss)";
 	$logger->debug($sql);
 	my $sth = $dbh->prepare($sql)
 		  || $logger->error("Can't prepare statement: $DBI::errstr");

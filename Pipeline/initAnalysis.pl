@@ -922,10 +922,12 @@ qx/ls -d $fcpath\/Data\/Intensities\/BaseCalls\/GERALD* 2> \/dev\/null/;
 		
 		#TW 24.02.2015: if $projectfolder is not given --> set based on $version
 		if($projectfolder eq ""){
-			if($version eq "gatk"){
-				$projectfolder = $params->{settings}->{hg19_test}->{analysis}->{folder} . "plus";
+			if($settings eq "hg38") {
+				$projectfolder = $params->{dirs}->{hg38projectfolder};
+			} elsif($version eq "gatk"){
+				$projectfolder = $params->{dirs}->{projectfolder} . "plus";
 			}else{
-				$projectfolder = $params->{settings}->{hg19_test}->{analysis}->{folder};      #default
+				$projectfolder = $params->{dirs}->{projectfolder};      #default
 			}
 		}
 		

@@ -25,7 +25,8 @@ my $cnvnator     = "";
 my $lumpy        = "";
 my $pindel       = "";
 my $breakdancer  = "";
-my $manta		 = "";
+my $manta	 = "";
+my $whamg	 = "";
 
 my $overlap      = 0.8;
 my $pindelLength = 50;
@@ -43,6 +44,7 @@ GetOptions(
 	"pl=s" => \$pindelLength,
 	"b=s"  => \$breakdancer,
 	"m=s"  => \$manta,
+	"w=s"  => \$whamg,
 	"v=s"  => \$overlap,
 	"se=s" => \$settings,
 	"lf=s" => \$logfile,
@@ -184,6 +186,29 @@ if ($breakdancer ne "") {
 	
 }
 
+#read whamg 
+if ($whamg ne "") {
+	
+	$logger->info("Adding whamg variants...");
+	my $vcf = Vcf->new( file => $whamg );
+	$vcf->parse_header();
+	while ( my $vcfline = $vcf->next_data_hash() ) {
+		
+		next unless ($vcfline->{INFO}->{SVTYPE} =~ /DEL/ or $vcfline->{INFO}->{SVTYPE} =~ /INS/ or $vcfline->{INFO}->{SVTYPE} =~ /DUP/ or $vcfline->{INFO}->{SVTYPE} =~ /INV/);
+				
+		my @values;
+		push(@values,"SR=".$vcfline->{INFO}->{SR});
+		push(@values,"SS=".$vcfline->{INFO}->{SS});
+
+		my $svttype = $vcfline->{INFO}->{SVTYPE};
+		$svttype =~ s/<//g;
+		$svttype =~ s/>//g;
+		&mergeVariant($vcfline->{CHROM},$vcfline->{POS},$vcfline->{INFO}->{END},$svttype,$vcfline->{INFO}->{SVLEN},"whamg",\@values );
+	}
+	
+	$vcf->close();
+	
+}
 
 #read manta
 if ($manta ne "") {
@@ -263,6 +288,8 @@ print OUT "##fileformat=VCFv4.2
 ##INFO=<ID=BDOR2,Number=1,Type=String,Description=\"Breakdancer: Orientation of reads at breakpoint 2\">
 ##INFO=<ID=MTGT,Number=1,Type=Integer,Description=\"Manta: alleles of variant: 1 - heterozygous, 2 - homozygous\">
 ##INFO=<ID=MTGQ,Number=1,Type=Integer,Description=\"Manta: genotype quality of variant\">
+##INFO=<ID=SR,Number=1,Type=Integer,Description=\"Number of split-reads supporing SV\">
+##INFO=<ID=SS,Number=1,Type=Integer,Description=\"Number of split-reads supporing SV\">
 ##ALT=<ID=DEL,Description=\"Deletion\">
 ##ALT=<ID=DUP,Description=\"Duplication\">
 ##ALT=<ID=INV,Description=\"Inversion\">

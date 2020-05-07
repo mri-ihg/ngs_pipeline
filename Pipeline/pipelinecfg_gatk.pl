@@ -313,6 +313,7 @@ print OUT "libpair  : $libpair\n\n";
 &runBreakdancer;
 &runLumpy;
 &runManta;
+&runWhamg;
 &insertSV;
 
 &bellerophon;
@@ -2854,6 +2855,35 @@ sub runManta {
 	}
 }
 
+sub runWhamg {
+        if ( $vcf > 0 && $libtype eq "genomic") {
+
+                print OUT "
+##############################################################
+# run whamg
+##############################################################
+";
+                print OUT "pgr   : runWhamg.pl\n";
+                print OUT "# bamfile\n";
+                print OUT "param : b : $outdir/$project/$sample/$folder/$subfolder/merged.rmdup.bam\n";
+                print OUT "# settings\n";
+                print OUT "param : se : $settings\n";
+                print OUT "# output directory\n";
+                print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/\n";
+                print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
+                print OUT "dependson : bwa_merge_gatk.pl\n";
+                &printSlot("runWhamg");
+
+                if ( $runs{runWhamg} == 1  ) { #&& $vcf == 1) {
+                        print OUT "run\n";
+                }
+                else {
+                        print OUT "#run\n";
+                }
+
+        }
+}
+
 
 sub insertSV {
 	if ( $vcf > 0 && $libtype eq "genomic") {
@@ -2877,11 +2907,13 @@ sub insertSV {
 		print OUT "param : b : $outdir/$project/$sample/$folder/$subfolder/all.breakdancer.vcf\n";
 		print OUT "# manta file\n";
 		print OUT "param : m : $outdir/$project/$sample/$folder/$subfolder/manta/results/variants/diploidSV.vcf.gz\n";
+		print OUT "# whamg file\n";
+		print OUT "param : w : $outdir/$project/$sample/$folder/$subfolder/whamg.filtered.annotated.vcf\n";
 		print OUT "# settings\n";
 		print OUT "param : se : $settings\n";
 
 		print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
-		print OUT "dependson : runLumpy.pl,concatVCF.pl,runPindel.pl,runCNVnator.pl,runBreakdancer.pl,runManta.pl\n";
+		print OUT "dependson : runLumpy.pl,concatVCF.pl,runPindel.pl,runWhamg.pl,runCNVnator.pl,runBreakdancer.pl,runManta.pl\n";
 		&printSlot("insertSV");
 		
 		if ( $runs{mergeSV} == 1  ) {

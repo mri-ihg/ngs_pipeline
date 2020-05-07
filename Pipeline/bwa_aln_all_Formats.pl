@@ -182,8 +182,9 @@ if ($removeAdapters)
 	# the syntax allows parallel execution of the launched command 
 	# system function is blocked by "wait" until both tasks are completed
 	my $cutadaptCommand=$cutadaptCommand1;
-	   $cutadaptCommand.=" & $cutadaptCommand2 & wait;" if $infile2 ne "";
-		
+	$cutadaptCommand.=" & $cutadaptCommand2 & wait;" if $infile2 ne "";
+	
+	$logger->debug($cutadaptCommand);
 	# Launch
 	system($cutadaptCommand);
 		

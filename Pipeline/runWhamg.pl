@@ -48,14 +48,11 @@ $outdir = dirname($bamfile) if $outdir eq "";
 
 my $params 		  = Utilities::getParams();
 my $whamg  		  = $params->{programs}->{whamg}->{path};
+my $whamg_filterprogram   = $params->{programs}->{whamg}->{filterprogram};
+my $whamg_annotationprog  = $params->{programs}->{whamg}->{annotationprogram};
 my $normalChrs  	  = $params->{settings}->{$settings}->{normalchromosomes};
 my $ref		 	  = $params->{settings}->{$settings}->{reference};
 
-my $discordantBAM = $bamfile;
-$discordantBAM    =~ s/bam$/discordant/;
-
-my $splitBAM      = $bamfile;
-$splitBAM         =~ s/bam$/splitters/;
 
 if($threads == -1){
 	$threads = 1;
@@ -65,28 +62,28 @@ if($threads == -1){
 	}
 }
 
-#creating config file
-my $command = "$whamg --bam=$bamfile --referenceFasta=$ref --runDir=$outdir";
-
-#adding normal chromosomes as region
-open CHROMS, $normalChrs or exit $logger->error("Can't open normal chromosome BED file: $normalChrs!");
-while(<CHROMS>){
-	chomp;
-	my @columns = split;
-	$command .= " --region=$columns[0]";
-}
-
-$logger->info("Creating manta config...");
-$logger->debug("Command: ".$command);
-system($command);
+my $command = "$whamg \\
+-x $threads \\
+-c chr1,chr2,chr3,chr4,chr5,chr6,chr7,chr8,chr9,chr10,chr11,chr12,chr13,chr14,chr15,chr16,chr17,chr18,chr19,chr20,chr21,chr22,chrX,chrY \\
+-a $ref \\
+-f $bamfile \\
+> $outdir/whamg.vcf \\
+2> $outdir/whamg.err";
 
 
-#running manta
-$command = "$outdir/runWorkflow.py -j $threads -m local";
-$logger->info("Running manta...");
-$logger->debug("Command: ".$command);
-system($command);
+&Utilities::executeCommand($command,"Running whamg", $logger);
 
+
+$command = "cat $outdir/whamg.vcf | \\
+/usr/bin/perl $whamg_filterprogram \\
+> $outdir/whamg.filtered.vcf";
+
+&Utilities::executeCommand($command,"Filter whamg results", $logger);
+
+
+$command = "python $whamg_annotationprog $outdir/whamg.filtered.vcf > $outdir/whamg.filtered.annotated.vcf";
+
+&Utilities::executeCommand($command,"Annotate whamg results", $logger);
 
 
 
