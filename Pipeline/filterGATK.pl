@@ -220,9 +220,12 @@ my $command="";
 					$command =~ s/\-\-max\-gaussians\ $maxGaussians/\-\-max\-gaussians\ $maxGaussiansNew /;
 				
 					if (&Utilities::executeCommand($command, "Running VariantRecalibrator for SNPs with $maxGaussiansNew gaussians...", $logger)) {
-						$logger->error("Error executing VariantRecalibrator for SNPs with less gaussians. That's hopeless. Bye");
+						$logger->error("Error executing VariantRecalibrator for SNPs with less gaussians. That's hopeless. Going for static filter.");
 						#Exit 
-						exit(-1);
+						#exit(-1);
+						# Don't die, the show must go on. GATK gives more problems than solutions, skip this crap
+						# Set FallBack to static filtering for SNPs and INDELs
+						$snpFilter=1; $indelFilter=1;
 					}
 				}
 			

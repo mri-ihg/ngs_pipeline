@@ -27,6 +27,9 @@ my $loglevel     = "INFO";
 my $help         = 0;
 my $man		     = 0;
 
+my $chrprefix = 0;
+my $nochrprefix = 0;
+
 my $caddFile     = "";
 my $caddRegion   = "";
 
@@ -49,6 +52,8 @@ my $kaviarFile   = "";
 GetOptions(
 	"d"    => \$delete,
 	"se=s" => \$settings,
+	"chrprefix" => \$chrprefix,
+	"nochrprefix" => \$nochrprefix,
 	"c=s"  => \$caddFile,
 	"cr=s" => \$caddRegion,
 	"cv=s" => \$clinVarFile,
@@ -89,17 +94,18 @@ my $sifttable               = $variantdb . "." . $params->{settings}->{$settings
 my $clinvartable            = $variantdb . "." . $params->{settings}->{$settings}->{variationdb}->{clinvartable};
 my $haploinsufficiencytable = $variantdb . "." . $params->{settings}->{$settings}->{variationdb}->{haploinsufficiencytable};
 my $exactable				= $variantdb . "." . $params->{settings}->{$settings}->{variationdb}->{exactable};
-my $gnomadtable				= $variantdb . "." . $params->{settings}->{$settings}->{variationdb}->{exactable};	#TODO gnomadtable=exactable;
-#   $gnomadtable				= $variantdb . "." . "gnomad";	#TODO DECIDI DOVE METTERLO!
-#   $exactable = $gnomadtable; #TODO! LEVALO
+my $gnomadtable				= $variantdb . "." . $params->{settings}->{$settings}->{variationdb}->{exactable};	
+#TODO gnomadtable=exactable; #Should be renamed
+#   $gnomadtable				= $variantdb . "." . "gnomad";	
+#   $exactable = $gnomadtable; 
 my $kaviartable				= $variantdb . "." . $params->{settings}->{$settings}->{variationdb}->{kaviartable};
 my $tgenomestable		    = $variantdb . "." . $params->{settings}->{$settings}->{variationdb}->{tgenomestable};
 
 
-#TODO: DELETE AGAIN!!!
-#### Temporarly change gnomadTable for import
-$gnomadtable = "hg19.evs_tmp";
-$gnomadtable = "hg19.evs2";
+# TODO: Transform it into an option
+#### Temporarly change gnomadTable for import (when updating)
+#$gnomadtable = "hg19.evs_tmp";
+#$gnomadtable = "hg19.evs2";
 ####
 
 my $exomeprefix="";
@@ -110,16 +116,29 @@ my $logger = Utilities::getLogger();
 $dbh = Utilities::connectCoreDB();
 
 
-#check if the reference genome uses "chr" in front of chromosome names
+# Check if the reference genome uses "chr" in front of chromosome names unless provided from command line argument
+# Useful to install the online DB where you don't need the reference file
 my $useChr = 0;
-open FAI, $params->{settings}->{$settings}->{reference}.".fai" or exit $logger->error("Can't open $params->{settings}->{$settings}->{reference}.fai!");
-my $line = <FAI>;
-$useChr  = 1 if $line =~ /^chr/;
-close FAI;
-
 my $chr = "";
-$chr    = "chr" if $useChr;
 
+if ( $chrprefix || $nochrprefix ) 
+{
+	if ($chrprefix)
+	{
+		$useChr = 1;
+		$chr="chr";
+	}
+}
+else
+{
+	# Autotest if the reference needs chr prefix
+	open FAI, $params->{settings}->{$settings}->{reference}.".fai" or exit $logger->error("Can't open $params->{settings}->{$settings}->{reference}.fai!");
+	my $line = <FAI>;
+	$useChr  = 1 if $line =~ /^chr/;
+	close FAI;
+
+	$chr    = "chr" if $useChr;
+}
 
 #delete required entries
 if($delete){
@@ -806,6 +825,8 @@ Kaviar:
  General:
  -se	name of the settings in the current.config.xml file that holds path to reference genome, 
  	to the annotation file and to possible additional annotation files; use default settings if nothing is given
+ -chrprefix  reference contigs have "chr" as prefix (overrides automatic check)
+ -nochrprefix reference contigs don't have "chr" as prefix (overrides automatic check)
  -d     delete entries of the choosen data sets before inserting the new entries
  -lf	log file; default: print to screen
  -ll	log level: ERROR,INFO,DEBUG; default: INFO
