@@ -209,6 +209,7 @@ if($caddFile ne ""){ #get data from CADD
 			
 		my $counter = 0;
 		while ( <CADD>) {
+			next if $_ =~ /^#/; #skip header
 			print MYSQL $chr.$_;
 			$counter++;
 			$logger->info("CADD - Inserted $counter entries - last entry: $chr$_") if $counter % 1000000 == 0;	
