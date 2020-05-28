@@ -64,6 +64,7 @@ while ( my $vcfline = $vcf->next_data_hash() ) {
 	#for all alternative alleles
 	foreach my $alt_nuc(@{$vcfline->{ALT}}){
 		$alleleCounter++;
+        next if ( $alt_nuc eq "*");
 		
 		my $sql = qq{select idsnv from $exomedb.$snvTable where chrom = '$vcfline->{CHROM}' and start = $vcfline->{POS} and allele = '$alt_nuc' and refallele='$vcfline->{REF}'};
 		$logger->debug($sql);

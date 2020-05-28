@@ -112,6 +112,18 @@ sub updateSnv {
 	my $reflength = length $vcfline->{REF};
 	my $altlength = length $alt_nuc;
 
+
+    # Support (tolerate) VCF 4.3 - Ignore * allele right now
+    my $whichAlt = 1;	# Which alternative allele pick in multi fields 
+    my $hasStar = 0;
+
+    if ( $alt_nuc eq "*" )
+    {
+        $alt_nuc = $vcfline->{ALT}[1];
+        $whichAlt=2;
+        $hasStar=1;
+    }
+
 	if ( $vcfline->{REF} eq "LD" || $vcfline->{REF} eq "LI" ) {			#old
 		$length = $alt_nuc;
 		if ( $vcfline->{REF} eq "LD" ) {
@@ -122,7 +134,7 @@ sub updateSnv {
 			$reflength = 0;
 			$altlength = $length;
 		}
-	} elsif ($vcfline->{INFO}->{SVTYPE} && !($vcfline->{REF} =~/[acgt]+/i && $alt_nuc =~/[acgt]+/i)) {		#TW 09.10.2015: pindel is a special case, because it has SVTYPE but usually also gives 
+	} elsif ($vcfline->{INFO}->{SVTYPE} && !($vcfline->{REF} =~/[acgt]+/i && $alt_nuc =~/[acgt\*]+/i)) {		#TW 09.10.2015: pindel is a special case, because it has SVTYPE but usually also gives 
 		$length         = $vcfline->{INFO}->{END} - $vcfline->{POS};
 		$vcfline->{REF} = "N";
 		$alt_nuc        = "<".$vcfline->{INFO}->{SVTYPE}.">";

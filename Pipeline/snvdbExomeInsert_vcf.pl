@@ -163,10 +163,24 @@ sub insertSnv {
 	my $length    = 1;
 	my $reflength = 0;
 	my $altlength = 0;
+
+
+    # Support (tolerate) VCF 4.3 - Ignore * allele right now
+    my $whichAlt = 1;	# Which alternative allele pick in multi fields 
+    my $hasStar = 0;
+
+    if ( $alt_nuc eq "*" )
+    {
+        $alt_nuc = $vcfline->{ALT}[1];
+        $whichAlt=2;
+        $hasStar=1;
+    }
+
+
 	
 	return if defined $vcfline->{INFO}->{SVTYPE} && $vcfline->{INFO}->{SVTYPE} eq "INV"; #TW 28.10.2015: problems with inversions --> do not insert them for now into the normal snv table
 
-	if ( $caller eq "exomedepth" || ($vcfline->{INFO}->{SVTYPE} && !($vcfline->{REF} =~/[acgt]+/i && $alt_nuc =~/[acgt]+/i)) ) {		#TW 09.10.2015: pindel is a special case, because it has SVTYPE but usually also gives 
+	if ( $caller eq "exomedepth" || ($vcfline->{INFO}->{SVTYPE} && !($vcfline->{REF} =~/[acgt]+/i && $alt_nuc =~/[acgt\*]+/i)) ) {		#TW 09.10.2015: pindel is a special case, because it has SVTYPE but usually also gives 
 		
 		if ( $vcfline->{REF} eq "LD" ) {
 			$length = $alt_nuc;
@@ -744,12 +758,14 @@ qq{insert into $exomedb.$additionalannotationtable (idsnv,annotationname,idannot
 					my @columns =
 					  split( ",", $vcfline->{gtypes}->{$sample}->{AD} )
 					  ;    #get %variants for each sample in a GATK vcf file
-					$columns[1] = 0 unless $columns[1];
-					$varPercent = $columns[1] / ( $columns[0] + $columns[1] )
-					  if ( $columns[0] + $columns[1] ) != 0;
+                    $columns[1] = 0 unless $columns[1];
+                    $columns[$whichAlt] = 0 unless $columns[$whichAlt];
+                    # Take the column $whichAlt - Normally it's 1 in case of spanning deletion *,[ACGT] we take the element 2.  AD=REF,ALT1,ALT2
+					$varPercent = $columns[$whichAlt] / ( $columns[0] + $columns[$whichAlt] )
+					  if ( $columns[0] + $columns[$whichAlt] ) != 0;
 					$varPercent *= 100;
 					$dp =
-					  ( $columns[0] + $columns[1] );   # if $caller eq "pindel";
+					  ( $columns[0] + $columns[$whichAlt] );   # if $caller eq "pindel";
 
 				}
 			}

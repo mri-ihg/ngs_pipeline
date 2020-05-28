@@ -660,7 +660,7 @@ sub annotateVariant {
 
 	while ( $vcfline = $vcf->next_data_hash() ) {
 		
-		if($annoMode eq "cnv" || ($annoMode eq "auto" && $vcfline->{INFO}->{END} && !($vcfline->{REF} =~/[acgt]+/i && $vcfline->{ALT}[0] =~/[acgt]+/i) ) ){			#CNV annotation mode
+		if($annoMode eq "cnv" || ($annoMode eq "auto" && $vcfline->{INFO}->{END} && !($vcfline->{REF} =~/[acgt]+/i && $vcfline->{ALT}[0] =~/[acgt\*]+/i) ) ){			#CNV annotation mode #Alt allele might contain * for SNPs in case of spanning deletions
 			$vcfline->{INFO}->{FUNC} = "unknown";
 		
 			
@@ -703,7 +703,7 @@ sub annotateVariant {
 			}
 		
 			
-		}elsif ($annoMode eq "short" || ($annoMode eq "auto" && $vcfline->{REF} =~/[acgt]+/i && $vcfline->{ALT}[0] =~/[acgt]+/i ) ) {
+		}elsif ($annoMode eq "short" || ($annoMode eq "auto" && $vcfline->{REF} =~/[acgt]+/i && $vcfline->{ALT}[0] =~/[acgt\*]+/i ) ) {     #Alt allele might contain * for SNPs in case of spanning deletions
 			
 			$codingprint   = "";
 			$spliceprint   = "";
@@ -714,11 +714,23 @@ sub annotateVariant {
 			$occurence = 0;
 			my $is1000G = 0;
 			chomp;
-	
+
+            # Support for VCF4.3 notation, but ignore the "*"
+            # Altallele can be *,[ACGT] or [ACGT],* in case of spanning deletion
+            my $whichAlt = 1;	# Which alternative allele pick in multi fields 
+            my $hasStar = 0;
+
 			#get info from VCF line
 			$chr     = $vcfline->{CHROM};
 			$pos     = $vcfline->{POS};
 			$alt_nuc = $vcfline->{ALT}[0];
+
+            if ( $alt_nuc eq "*" )
+            {
+                $alt_nuc = $vcfline->{ALT}[1];
+                $whichAlt=2;
+                $hasStar=1;
+            }
 	
 			#splice read handling
 			if ( $chr =~ /^uc/ ) {
@@ -1171,6 +1183,7 @@ sub annotateVariant {
 						}
 					}
 					if ( $anno->{filter} ) {
+                        # If additional annotation sets a filter then, if filter is "." remove it adn then push back to the filter array the new filter value
 						if ( $vcfline->{FILTER}[0] && $vcfline->{FILTER}[0] eq "." )
 						{
 							delete $vcfline->{FILTER}[0];
