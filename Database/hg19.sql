@@ -1676,7 +1676,6 @@ CREATE TABLE `wgEncodeGencodeBasicV12` (
 /*!50001 SET character_set_results     = utf8 */;
 /*!50001 SET collation_connection      = utf8_general_ci */;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
-/*!50013 DEFINER=`wieland`@`localhost` SQL SECURITY DEFINER */
 /*!50001 VIEW `knownGeneSymbol` AS select `kg`.`name` AS `name`,`kg`.`chrom` AS `chrom`,`kg`.`strand` AS `strand`,`kg`.`txStart` AS `txStart`,`kg`.`txEnd` AS `txEnd`,`kg`.`cdsStart` AS `cdsStart`,`kg`.`cdsEnd` AS `cdsEnd`,`kg`.`exonCount` AS `exonCount`,`kg`.`exonStarts` AS `exonStarts`,`kg`.`exonEnds` AS `exonEnds`,`kg`.`proteinID` AS `proteinID`,`kg`.`alignID` AS `alignID`,`x`.`geneSymbol` AS `geneSymbol` from (`knownGene` `kg` join `kgXref` `x` on((`x`.`kgID` = `kg`.`name`))) */;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
@@ -1695,7 +1694,6 @@ CREATE TABLE `wgEncodeGencodeBasicV12` (
 /*!50001 SET character_set_results     = utf8 */;
 /*!50001 SET collation_connection      = utf8_general_ci */;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
-/*!50013 DEFINER=`wieland`@`localhost` SQL SECURITY DEFINER */
 /*!50001 VIEW `lincRNAsTranscriptsSymbol` AS select `lincRNAsTranscripts`.`bin` AS `bin`,`lincRNAsTranscripts`.`name` AS `name`,`lincRNAsTranscripts`.`chrom` AS `chrom`,`lincRNAsTranscripts`.`strand` AS `strand`,`lincRNAsTranscripts`.`txStart` AS `txStart`,`lincRNAsTranscripts`.`txEnd` AS `txEnd`,`lincRNAsTranscripts`.`cdsStart` AS `cdsStart`,`lincRNAsTranscripts`.`cdsEnd` AS `cdsEnd`,`lincRNAsTranscripts`.`exonCount` AS `exonCount`,`lincRNAsTranscripts`.`exonStarts` AS `exonStarts`,`lincRNAsTranscripts`.`exonEnds` AS `exonEnds`,'' AS `geneSymbol` from `lincRNAsTranscripts` */;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
@@ -1714,7 +1712,6 @@ CREATE TABLE `wgEncodeGencodeBasicV12` (
 /*!50001 SET character_set_results     = utf8 */;
 /*!50001 SET collation_connection      = utf8_general_ci */;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
-/*!50013 DEFINER=`wieland`@`localhost` SQL SECURITY DEFINER */
 /*!50001 VIEW `longest_gene` AS select `longest_peptide`.`geneSymbol` AS `geneSymbol`,`longest_peptide`.`longest_transcript` AS `longest_transcript` from `longest_peptide` union select `longest_transcript`.`geneSymbol` AS `geneSymbol`,`longest_transcript`.`longest_transcript` AS `longest_transcript` from `longest_transcript` where (not(`longest_transcript`.`geneSymbol` in (select `longest_peptide`.`geneSymbol` from `longest_peptide`))) */;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
@@ -1733,7 +1730,6 @@ CREATE TABLE `wgEncodeGencodeBasicV12` (
 /*!50001 SET character_set_results     = utf8 */;
 /*!50001 SET collation_connection      = utf8_general_ci */;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
-/*!50013 DEFINER=`wieland`@`localhost` SQL SECURITY DEFINER */
 /*!50001 VIEW `longest_peptide` AS select distinct `g`.`geneSymbol` AS `geneSymbol`,(select `x`.`kgID` from (`kgXref` `x` join `knownGenePep` `p` on((`x`.`kgID` = `p`.`name`))) where (`g`.`geneSymbol` = `x`.`geneSymbol`) group by `g`.`geneSymbol` having max(length(`p`.`seq`))) AS `longest_transcript` from `kgXref` `g` group by `g`.`geneSymbol` having (`longest_transcript` is not null) */;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
@@ -1752,7 +1748,6 @@ CREATE TABLE `wgEncodeGencodeBasicV12` (
 /*!50001 SET character_set_results     = utf8 */;
 /*!50001 SET collation_connection      = utf8_general_ci */;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
-/*!50013 DEFINER=`wieland`@`localhost` SQL SECURITY DEFINER */
 /*!50001 VIEW `longest_transcript` AS select distinct `g`.`geneSymbol` AS `geneSymbol`,(select `x`.`kgID` from (`kgXref` `x` join `knownGene` `p` on((`x`.`kgID` = `p`.`name`))) where (`g`.`geneSymbol` = `x`.`geneSymbol`) group by `g`.`geneSymbol` having max((`p`.`txEnd` - `p`.`txStart`))) AS `longest_transcript` from `kgXref` `g` group by `g`.`geneSymbol` having (`longest_transcript` is not null) */;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
