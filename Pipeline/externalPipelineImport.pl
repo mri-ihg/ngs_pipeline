@@ -113,7 +113,7 @@ system ("rm $tmp/$sample.tmp.*");
 
 $logger->info("Annotation");
 system("
-	perl $prog_path/annotateVCF.pl -i $vcf -o $tmp/$sample.tmp.plus.vcf -se $settings -w 20
+	perl $prog_path/annotateVCF.pl -i $vcf -o $tmp/$sample.tmp.plus.vcf -se $settings -w 5
 ");
 
 
