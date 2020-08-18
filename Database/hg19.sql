@@ -226,6 +226,9 @@ CREATE TABLE `evs` (
   `aa_het` int(11) unsigned DEFAULT NULL,
   `aa_homalt` int(11) unsigned DEFAULT NULL,
   `popmax_af` float DEFAULT NULL,
+  `homref` int(11) unsigned DEFAULT NULL,
+  `het` int(11) unsigned DEFAULT NULL,
+  `homalt` int(11) unsigned DEFAULT NULL,
   PRIMARY KEY (`idexac`),
   UNIQUE KEY `uniqueexac` (`chrom`,`start`,`refallele`,`allele`)
 ) ENGINE=MyISAM AUTO_INCREMENT=275581146 DEFAULT CHARSET=latin1;
