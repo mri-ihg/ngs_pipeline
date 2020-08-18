@@ -98,6 +98,7 @@ my $gnomadtable				= $variantdb . "." . $params->{settings}->{$settings}->{varia
 #TODO gnomadtable=exactable; #Should be renamed
 #   $gnomadtable				= $variantdb . "." . "gnomad";	
 #   $exactable = $gnomadtable; 
+#### TODO: COMMENT THE UP ONE BACK
 my $kaviartable				= $variantdb . "." . $params->{settings}->{$settings}->{variationdb}->{kaviartable};
 my $tgenomestable		    = $variantdb . "." . $params->{settings}->{$settings}->{variationdb}->{tgenomestable};
 
@@ -369,20 +370,27 @@ if ($gnomadFolder ne "")
 				chomp;
 				my @columns = split("\t");
 				
-				my $filter = $columns[6];
-				$filter = "VQSR" unless $filter eq "PASS";
-		
 				my @alt = split(",",$columns[4]);		
 				my $n = @alt;		#get number of alternative alleles
-				
+
+                                my $filter = $columns[6];
+                                $filter = "VQSR" unless $filter eq "PASS";	
+			
 				my @info = split(";",$columns[7]);
+	
+				# All datasets
+				my @ac;
+				my @hom;
+				my @het;
+				my $an;		
 				
-				
+				# Africans
 				my @ac_afr;
 				my @hom_afr;
 				my @het_afr;
 				my $an_afr;
 				
+				# Non-finnish europeans
 				my @ac_nfe;
 				my @hom_nfe;
 				my @het_nfe;
@@ -396,7 +404,13 @@ if ($gnomadFolder ne "")
 				
 				foreach my $entry (@info){
 					my ($key,$value) = split("=",$entry);
-					if($key eq "AC_afr"){
+					if($key eq "AC"){
+                                                @ac = split(",",$value);
+                                        }elsif($key eq "nhomalt"){
+                                                @hom = split(",",$value);
+                                        }elsif($key eq "AN"){
+                                                $an = $value;
+					}elsif($key eq "AC_afr"){
 						@ac_afr = split(",",$value);
 					}elsif($key eq "nhomalt_afr"){
 						@hom_afr = split(",",$value);
@@ -429,13 +443,17 @@ if ($gnomadFolder ne "")
 				}
 				
 				
-				
+				my $sum = 0;
 				my $afr_sum = 0;
 				my $nfe_sum = 0;
 				#my $popmax_sum = 0;
 				
 				for(my $i = 0; $i < $n; $i++){
-					$het_afr[$i] = ($ac_afr[$i]- ($hom_afr[$i]*2));			#create numbers per allele
+
+                                        $het[$i]     = ($ac[$i]    - ($hom[$i]*2));                 #create numbers per allele
+                                        $sum        += $hom[$i]     + $het[$i];
+
+					$het_afr[$i] = ($ac_afr[$i]- ($hom_afr[$i]*2));
 					$afr_sum    += $hom_afr[$i] + $het_afr[$i];
 					
 					$het_nfe[$i] = ($ac_nfe[$i]- ($hom_nfe[$i]*2));
@@ -445,6 +463,7 @@ if ($gnomadFolder ne "")
 					#$popmax_sum    += $hom_popmax[$i] + $het_popmax[$i]			if( defined ($hom_popmax[$i]) && defined ($het_popmax[$i]));
 				}
 				
+				my $homref     = (($an     - ($sum*2) )/2);
 				my $afr_homref = (($an_afr - ($afr_sum*2) )/2);
 				my $nfe_homref = (($an_nfe - ($nfe_sum*2) )/2);
 				#my $popmax_homref = 0;
@@ -479,7 +498,7 @@ if ($gnomadFolder ne "")
 					# TODO: ADD new zeroes for exomes of GNOMAD
 					
 					#print MYSQL "0"."\t".$chr.$columns[0]."\t".$newentry_start."\t".$newref."\t".$newalt."\t".$filter."\t".$nfe_homref."\t".$het_nfe[$i]."\t".$hom_nfe[$i]."\t".$afr_homref."\t".$het_afr[$i]."\t".$hom_afr[$i]."\t".$popmax_homref."\t".$het_popmax[$i]."\t".$hom_popmax[$i]."\n";
-					print MYSQL "0"."\t".$chr.$columns[0]."\t".$newentry_start."\t".$newref."\t".$newalt."\t".$filter."\t".$nfe_homref."\t".$het_nfe[$i]."\t".$hom_nfe[$i]."\t".$afr_homref."\t".$het_afr[$i]."\t".$hom_afr[$i]."\t".$af_popmax[$i]."\n";
+					print MYSQL "0"."\t".$chr.$columns[0]."\t".$newentry_start."\t".$newref."\t".$newalt."\t".$filter."\t".$nfe_homref."\t".$het_nfe[$i]."\t".$hom_nfe[$i]."\t".$afr_homref."\t".$het_afr[$i]."\t".$hom_afr[$i]."\t".$af_popmax[$i]."\t".$homref."\t".$het[$i]."\t".$hom[$i]."\n";
 				}
 			}
 			close GN;
@@ -510,7 +529,12 @@ if($exacFile ne ""){
 		my $n = @alt;		#get number of alternative alleles
 		
 		my @info = split(";",$columns[7]);
-		
+	
+
+				my @ac;
+                                my @hom;
+                                my @het;
+                                my $an;	
 		
 				my @ac_afr;
 				my @hom_afr;
@@ -530,7 +554,13 @@ if($exacFile ne ""){
 				
 				foreach my $entry (@info){
 					my ($key,$value) = split("=",$entry);
-					if($key eq "AC_afr"){
+					if($key eq "AC"){
+                                                @ac_afr = split(",",$value);
+                                        }elsif($key eq "nhomalt"){
+                                                @hom_afr = split(",",$value);
+                                        }elsif($key eq "AN"){
+                                                $an_afr = $value;
+					}elsif($key eq "AC_afr"){
 						@ac_afr = split(",",$value);
 					}elsif($key eq "nhomalt_afr"){
 						@hom_afr = split(",",$value);
@@ -555,13 +585,16 @@ if($exacFile ne ""){
 				}
 		
 		
-		
+		my $sum = 0;
 		my $afr_sum = 0;
 		my $nfe_sum = 0;
 		#my $popmax_sum = 0;
 		
 		for(my $i = 0; $i < $n; $i++){
-			$het_afr[$i] = ($ac_afr[$i]- ($hom_afr[$i]*2));			#create numbers per allele
+                        $het[$i]     = ($ac[$i]    - ($hom[$i]*2));                 #create numbers per allele
+                        $sum        += $hom[$i]     + $het[$i];
+
+			$het_afr[$i] = ($ac_afr[$i]- ($hom_afr[$i]*2));
 			$afr_sum    += $hom_afr[$i] + $het_afr[$i];
 			
 			$het_nfe[$i] = ($ac_nfe[$i]- ($hom_nfe[$i]*2));
@@ -570,6 +603,7 @@ if($exacFile ne ""){
 			#$het_popmax[$i] = ($ac_popmax[$i]- ($hom_popmax[$i]*2)) 	if( defined ($ac_popmax[$i]) && defined ($hom_popmax[$i]) );
 			#$popmax_sum    += $hom_popmax[$i] + $het_popmax[$i]			if( defined ($hom_popmax[$i]) && defined ($het_popmax[$i]));
 		}
+		my $homref     = (($an     - ($sum*2) )/2);
 		my $afr_homref = (($an_afr - ($afr_sum*2) )/2);
 		my $nfe_homref = (($an_nfe - ($nfe_sum*2) )/2);
 		#my $popmax_homref = 0; #(($an_popmax - ($popmax_sum*2) )/2);
@@ -600,13 +634,13 @@ if($exacFile ne ""){
 			if ( $gnomadExomesFile eq "" )
 			{
 				#It's exac
-				executeQuery("insert ignore into $exactable (chrom,start,refallele,allele,".$exomeprefix."filter,".$exomeprefix."ea_homref,".$exomeprefix."ea_het,".$exomeprefix."ea_homalt,".$exomeprefix."aa_homref,".$exomeprefix."aa_het,".$exomeprefix."aa_homalt,".$exomeprefix."popmax_af) values ('$chr".$columns[0]."',".$newentry_start.",'$newref','$newalt','".$filter."',$nfe_homref,".$het_nfe[$i].",".$hom_nfe[$i].",".$afr_homref.",".$het_afr[$i].",".$hom_afr[$i].",".$af_popmax[$i].") ON DUPLICATE KEY UPDATE ".$exomeprefix."filter='".$filter."', ".$exomeprefix."ea_homref=". $nfe_homref .", ".$exomeprefix."ea_het=".$het_nfe[$i].", ".$exomeprefix."ea_homalt=".$hom_nfe[$i].", ".$exomeprefix."aa_homref=".$afr_homref.", ".$exomeprefix."aa_het=".$het_afr[$i].", ".$exomeprefix."aa_homalt=".$hom_afr[$i].", ".$exomeprefix."popmax_af=".$af_popmax[$i].";" );
+				executeQuery("insert ignore into $exactable (chrom,start,refallele,allele,".$exomeprefix."filter,".$exomeprefix."ea_homref,".$exomeprefix."ea_het,".$exomeprefix."ea_homalt,".$exomeprefix."aa_homref,".$exomeprefix."aa_het,".$exomeprefix."aa_homalt,".$exomeprefix."popmax_af,".$exomeprefix."homref,".$exomeprefix."het,".$exomeprefix."homalt) values ('$chr".$columns[0]."',".$newentry_start.",'$newref','$newalt','".$filter."',$nfe_homref,".$het_nfe[$i].",".$hom_nfe[$i].",".$afr_homref.",".$het_afr[$i].",".$hom_afr[$i].",".$af_popmax[$i].",".$homref.",".$het[$i].",".$hom[$i].") ON DUPLICATE KEY UPDATE ".$exomeprefix."filter='".$filter."', ".$exomeprefix."ea_homref=". $nfe_homref .", ".$exomeprefix."ea_het=".$het_nfe[$i].", ".$exomeprefix."ea_homalt=".$hom_nfe[$i].", ".$exomeprefix."aa_homref=".$afr_homref.", ".$exomeprefix."aa_het=".$het_afr[$i].", ".$exomeprefix."aa_homalt=".$hom_afr[$i].", ".$exomeprefix."popmax_af=".$af_popmax[$i].", ".$exomeprefix."homref=".$homref.", ".$exomeprefix."het=".$het[$i].", ".$exomeprefix."homalt=".$hom[$i].";" );
 				#executeQuery("insert ignore into $exactable (chrom,start,refallele,allele,".$exomeprefix."filter,".$exomeprefix."ea_homref,".$exomeprefix."ea_het,".$exomeprefix."ea_homalt,".$exomeprefix."aa_homref,".$exomeprefix."aa_het,".$exomeprefix."aa_homalt,".$exomeprefix."popmax_homref,".$exomeprefix."popmax_het,".$exomeprefix."popmax_homalt ) values ('$chr".$columns[0]."',".$newentry_start.",'$newref','$newalt','".$filter."',$nfe_homref,".$het_nfe[$i].",".$hom_nfe[$i].",".$afr_homref.",".$het_afr[$i].",".$hom_afr[$i].",".$popmax_homref.",".$het_popmax[$i].",".$hom_popmax[$i].") ON DUPLICATE KEY UPDATE ".$exomeprefix."filter='".$filter."', ".$exomeprefix."ea_homref=". $nfe_homref .", ".$exomeprefix."ea_het=".$het_nfe[$i].", ".$exomeprefix."ea_homalt=".$hom_nfe[$i].", ".$exomeprefix."aa_homref=".$afr_homref.", ".$exomeprefix."aa_het=".$het_afr[$i].", ".$exomeprefix."aa_homalt=".$hom_afr[$i].", ".$exomeprefix."popmax_homref=".$popmax_homref.", ".$exomeprefix."popmax_het=".$het_popmax[$i].", ".$exomeprefix."popmax_homalt=".$hom_popmax[$i].";" );
 			}
 			else
 			{
 				#Sum on already present values
-				executeQuery("insert ignore into $exactable (chrom,start,refallele,allele,".$exomeprefix."filter,".$exomeprefix."ea_homref,".$exomeprefix."ea_het,".$exomeprefix."ea_homalt,".$exomeprefix."aa_homref,".$exomeprefix."aa_het,".$exomeprefix."aa_homalt,".$exomeprefix."popmax_af) values ('$chr".$columns[0]."',".$newentry_start.",'$newref','$newalt','".$filter."',$nfe_homref,".$het_nfe[$i].",".$hom_nfe[$i].",".$afr_homref.",".$het_afr[$i].",".$hom_afr[$i].",".$af_popmax[$i].") ON DUPLICATE KEY UPDATE ".$exomeprefix."filter='".$filter."', ".$exomeprefix."ea_homref=".$exomeprefix."ea_homref + ".$nfe_homref .", ".$exomeprefix."ea_het=".$exomeprefix."ea_het + ".$het_nfe[$i].", ".$exomeprefix."ea_homalt=".$exomeprefix."ea_homalt + ".$hom_nfe[$i].", ".$exomeprefix."aa_homref=".$exomeprefix."aa_homref + ".$afr_homref.", ".$exomeprefix."aa_het=".$exomeprefix."aa_het + ".$het_afr[$i].", ".$exomeprefix."aa_homalt=".$exomeprefix."aa_homalt + ".$hom_afr[$i].", ".$exomeprefix."popmax_af=GREATEST(".$exomeprefix."popmax_af, ".$af_popmax[$i].");" );
+				executeQuery("insert ignore into $exactable (chrom,start,refallele,allele,".$exomeprefix."filter,".$exomeprefix."ea_homref,".$exomeprefix."ea_het,".$exomeprefix."ea_homalt,".$exomeprefix."aa_homref,".$exomeprefix."aa_het,".$exomeprefix."aa_homalt,".$exomeprefix."popmax_af,".$exomeprefix."homref,".$exomeprefix."het,".$exomeprefix."homalt) values ('$chr".$columns[0]."',".$newentry_start.",'$newref','$newalt','".$filter."',$nfe_homref,".$het_nfe[$i].",".$hom_nfe[$i].",".$afr_homref.",".$het_afr[$i].",".$hom_afr[$i].",".$af_popmax[$i].",".$homref.",".$het[$i].",".$hom[$i].") ON DUPLICATE KEY UPDATE ".$exomeprefix."filter='".$filter."', ".$exomeprefix."ea_homref=".$exomeprefix."ea_homref + ".$nfe_homref .", ".$exomeprefix."ea_het=".$exomeprefix."ea_het + ".$het_nfe[$i].", ".$exomeprefix."ea_homalt=".$exomeprefix."ea_homalt + ".$hom_nfe[$i].", ".$exomeprefix."aa_homref=".$exomeprefix."aa_homref + ".$afr_homref.", ".$exomeprefix."aa_het=".$exomeprefix."aa_het + ".$het_afr[$i].", ".$exomeprefix."aa_homalt=".$exomeprefix."aa_homalt + ".$hom_afr[$i].", ".$exomeprefix."popmax_af=GREATEST(".$exomeprefix."popmax_af, ".$af_popmax[$i]."), ".$exomeprefix."homref=".$exomeprefix."homref + ".$afr_homref.", ".$exomeprefix."het=".$exomeprefix."het + ".$het[$i].", ".$exomeprefix."homalt=".$exomeprefix."homalt + ".$hom[$i].";" );
 				#executeQuery("insert ignore into $exactable (chrom,start,refallele,allele,".$exomeprefix."filter,".$exomeprefix."ea_homref,".$exomeprefix."ea_het,".$exomeprefix."ea_homalt,".$exomeprefix."aa_homref,".$exomeprefix."aa_het,".$exomeprefix."aa_homalt,".$exomeprefix."popmax_homref,".$exomeprefix."popmax_het,".$exomeprefix."popmax_homalt ) values ('$chr".$columns[0]."',".$newentry_start.",'$newref','$newalt','".$filter."',$nfe_homref,".$het_nfe[$i].",".$hom_nfe[$i].",".$afr_homref.",".$het_afr[$i].",".$hom_afr[$i].",".$popmax_homref.",".$het_popmax[$i].",".$hom_popmax[$i].") ON DUPLICATE KEY UPDATE ".$exomeprefix."filter='".$filter."', ".$exomeprefix."ea_homref=".$exomeprefix."ea_homref + ".$nfe_homref .", ".$exomeprefix."ea_het=".$exomeprefix."ea_het + ".$het_nfe[$i].", ".$exomeprefix."ea_homalt=".$exomeprefix."ea_homalt + ".$hom_nfe[$i].", ".$exomeprefix."aa_homref=".$exomeprefix."aa_homref + ".$afr_homref.", ".$exomeprefix."aa_het=".$exomeprefix."aa_het + ".$het_afr[$i].", ".$exomeprefix."aa_homalt=".$exomeprefix."aa_homalt + ".$hom_afr[$i].", ".$exomeprefix."popmax_homref=".$exomeprefix."popmax_homref + ".$popmax_homref.", ".$exomeprefix."popmax_het=".$exomeprefix."popmax_het + ".$het_popmax[$i].", ".$exomeprefix."popmax_homalt=".$exomeprefix."popmax_homalt + ".$hom_popmax[$i].";" );
 			}
 		}
