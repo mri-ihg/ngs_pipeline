@@ -630,9 +630,9 @@ sub insertSnv {
 
 			next if $vcfline->{gtypes}->{$sample}->{GT} eq "./.";   #skip non-calls
 
-			next if $vcfline->{gtypes}->{$sample}->{GT} eq "0/0";    # skip hom ref calls
+			next if ( ($vcfline->{gtypes}->{$sample}->{GT} eq "0/0") || ($vcfline->{gtypes}->{$sample}->{GT} eq "0|0") );    # skip hom ref calls
 
-			if ( $vcfline->{gtypes}->{$sample}->{GT} =~ /(\d)\/(\d)/ ) {
+			if ( $vcfline->{gtypes}->{$sample}->{GT} =~ /(\d)[\/\|](\d)/ ) {
 				$alleles = $1 + $2;
 			}
 
