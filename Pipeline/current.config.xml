@@ -456,6 +456,7 @@
 			<tgenomestable>tgenomes</tgenomestable>
 			<caddtable>cadd</caddtable>
 			<exactable>evs</exactable>
+			<gnomadconstraints>evsscores</gnomadconstraints>
 			<kaviartable>kaviar</kaviartable>
 			<pphtable>pph3</pphtable>
 			<sifttable>sift</sifttable>
@@ -549,6 +550,7 @@
 			<tgenomestable>tgenomes</tgenomestable>
 			<caddtable>cadd</caddtable>
 			<exactable>evs</exactable>
+			<gnomadconstraints>evsscores</gnomadconstraints>
 			<kaviartable>kaviar</kaviartable>
 			<pphtable>pph3</pphtable>
 			<sifttable>sift</sifttable>
@@ -648,6 +650,7 @@
 			<tgenomestable>tgenomes</tgenomestable>
 			<caddtable>cadd</caddtable>
 			<exactable>evsT</exactable>
+			<gnomadconstraints>evsscores</gnomadconstraints>
 			<kaviartable>kaviarT</kaviartable>
 			<pphtable>pph3</pphtable>
 			<sifttable>sift</sifttable>
@@ -742,6 +745,7 @@
 			<tgenomestable>tgenomes</tgenomestable>
 			<caddtable>cadd</caddtable>
 			<exactable>evs</exactable>
+			<gnomadconstraints>evsscores</gnomadconstraints>
 			<kaviartable>kaviar</kaviartable>
 			<pphtable>pph3</pphtable>
 			<sifttable>sift</sifttable>
@@ -830,6 +834,7 @@
 			<tgenomestable>tgenomes</tgenomestable>
 			<caddtable>cadd</caddtable>
 			<exactable>evs</exactable>
+			<gnomadconstraints>evsscores</gnomadconstraints>
 			<kaviartable>kaviar</kaviartable>
 			<pphtable>pph3</pphtable>
 			<sifttable>sift</sifttable>
@@ -917,6 +922,7 @@
 			<tgenomestable>tgenomes</tgenomestable>
 			<caddtable>cadd</caddtable>
 			<exactable>evs</exactable>
+			<gnomadconstraints>evsscores</gnomadconstraints>
 			<kaviartable>kaviar</kaviartable>
 			<pphtable>pph3</pphtable>
 			<sifttable>sift</sifttable>
@@ -1013,6 +1019,7 @@
 			<tgenomestable>tgenomes</tgenomestable>
 			<caddtable>cadd</caddtable>
 			<exactable>evs</exactable>
+			<gnomadconstraints>evsscores</gnomadconstraints>
 			<kaviartable>kaviar</kaviartable>
 			<pphtable>pph3</pphtable>
 			<sifttable>sift</sifttable>
@@ -1108,6 +1115,7 @@
 			<tgenomestable>tgenomes</tgenomestable>
 			<caddtable>cadd</caddtable>
 			<exactable>evs</exactable>
+			<gnomadconstraints>evsscores</gnomadconstraints>
 			<kaviartable>kaviar</kaviartable>
 			<pphtable>pph3</pphtable>
 			<sifttable>sift</sifttable>
@@ -1277,6 +1285,7 @@
 			<tgenomestable>tgenomes</tgenomestable>
 			<caddtable>cadd</caddtable>
 			<exactable>evsT</exactable>
+			<gnomadconstraints>evsscores</gnomadconstraints>
 			<kaviartable>kaviarT</kaviartable>
 			<pphtable>pph3</pphtable>
 			<sifttable>sift</sifttable>
@@ -1365,6 +1374,7 @@
 			<tgenomestable>tgenomes</tgenomestable>
 			<caddtable>cadd</caddtable>
 			<exactable>evsT</exactable>
+			<gnomadconstraints>evsscores</gnomadconstraints>
 			<kaviartable>kaviarT</kaviartable>
 			<pphtable>pph3</pphtable>
 			<sifttable>sift</sifttable>

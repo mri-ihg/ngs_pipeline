@@ -21,7 +21,7 @@ my $sql          = "";
 my $sth          = "";
 my $delete       = 0;
 
-my $settings     = "default";
+my $settings     = "";
 my $logfile      = "SCREEN";
 my $loglevel     = "INFO";
 my $help         = 0;
@@ -44,6 +44,7 @@ my $doSIFT       = 0;
 my $exacFile     = "";
 my $gnomadFolder = "";
 my $gnomadExomesFile= "";
+my $gnomadConstraintsFile = "";
 
 my $tgenomesFile = "";
 
@@ -64,6 +65,7 @@ GetOptions(
 	"e=s"  => \$exacFile,
 	"g=s"  => \$gnomadFolder,
 	"gex=s"=> \$gnomadExomesFile,
+	"gc=s" => \$gnomadConstraintsFile,
 	"t=s"  => \$tgenomesFile,
 	"kav=s"=> \$kaviarFile,
 	"lf=s" => \$logfile,
@@ -74,7 +76,7 @@ GetOptions(
 
 pod2usage( { -exitval => 0, -verbose => 1 } ) if $help;
 pod2usage( { -exitval => 0, -verbose => 2 } ) if $man;
-pod2usage( { -exitval => 1, -verbose => 1 } ) if ($caddFile eq "" && $clinVarFile eq "" && $hifile eq ""  && $dbNSFP eq ""  && $exacFile eq "" && $tgenomesFile eq "" && $kaviarFile eq "" && $gnomadFolder eq "" && $gnomadExomesFile eq "" ) || (($doPPH || $doSIFT) && ! -d $dbNSFP ) ;
+pod2usage( { -exitval => 1, -verbose => 1 } ) if ($caddFile eq "" && $clinVarFile eq "" && $hifile eq ""  && $dbNSFP eq ""  && $exacFile eq "" && $tgenomesFile eq "" && $kaviarFile eq "" && $gnomadFolder eq "" && $gnomadExomesFile eq "" && $gnomadConstraintsFile eq "") || (($doPPH || $doSIFT) && ! -d $dbNSFP ) || ($settings eq "" );
 pod2usage( { -exitval => 1, -verbose => 1 } ) if ( $gnomadFolder ne "" && $gnomadExomesFile ne "");
 
 my $params         = Utilities::getParams();
@@ -95,6 +97,8 @@ my $clinvartable            = $variantdb . "." . $params->{settings}->{$settings
 my $haploinsufficiencytable = $variantdb . "." . $params->{settings}->{$settings}->{variationdb}->{haploinsufficiencytable};
 my $exactable				= $variantdb . "." . $params->{settings}->{$settings}->{variationdb}->{exactable};
 my $gnomadtable				= $variantdb . "." . $params->{settings}->{$settings}->{variationdb}->{exactable};	
+my $gnomadconstraintstable  = $variantdb . "." . $params->{settings}->{$settings}->{variationdb}->{gnomadconstraints};
+
 #TODO gnomadtable=exactable; #Should be renamed
 #   $gnomadtable				= $variantdb . "." . "gnomad";	
 #   $exactable = $gnomadtable; 
@@ -163,8 +167,8 @@ if ( $gnomadFolder ne "" || $gnomadExomesFile ne "")
 		foreach(glob("$gnomadFolder/gnomad.exomes.*vcf*gz"))
 		{
 			#It's only one anyway
-			my $exacFile=$_;
-			my $gnomadExomesFile=$exacFile;
+			$exacFile=$_;
+			$gnomadExomesFile=$exacFile;
 		}
 	}
 	else
@@ -338,8 +342,20 @@ if($hifile ne ""){ #insert haploinsufficiency
 	close HI;
 }
 
-#TODO 
-#Haploinsufficiency gene related from ExAC
+#Haploinsufficiency gene related from GnomAD
+# GnomAD 
+if ($gnomadConstraintsFile ne "" )
+{
+	if ( ! -e $gnomadConstraintsFile )
+	{
+		$logger->error("Gnomad Constraints table does not exist!");
+		exit (-1);
+	}
+
+	system "zcat $gnomadConstraintsFile | mysql -h$host -u$user -p$password $database --local-infile=1 -e 'LOAD DATA LOCAL INFILE \"/dev/stdin\" INTO TABLE $gnomadconstraintstable;'" or exit $logger->error("Can't open pipe to MySQL: | mysql -h$host -u$user -p******* $database --local-infile=1 -e 'LOAD DATA LOCAL INFILE \"/dev/stdin\" INTO TABLE $gnomadconstraintstable;'");
+
+}
+
 
 #GnomAD
 #	foreach(glob("$dbNSFP/dbNSFP3.*_variant.chr*")){
@@ -555,11 +571,11 @@ if($exacFile ne ""){
 				foreach my $entry (@info){
 					my ($key,$value) = split("=",$entry);
 					if($key eq "AC"){
-                                                @ac_afr = split(",",$value);
+                                                @ac = split(",",$value);
                                         }elsif($key eq "nhomalt"){
-                                                @hom_afr = split(",",$value);
+                                                @hom = split(",",$value);
                                         }elsif($key eq "AN"){
-                                                $an_afr = $value;
+                                                $an = $value;
 					}elsif($key eq "AC_afr"){
 						@ac_afr = split(",",$value);
 					}elsif($key eq "nhomalt_afr"){
@@ -640,7 +656,7 @@ if($exacFile ne ""){
 			else
 			{
 				#Sum on already present values
-				executeQuery("insert ignore into $exactable (chrom,start,refallele,allele,".$exomeprefix."filter,".$exomeprefix."ea_homref,".$exomeprefix."ea_het,".$exomeprefix."ea_homalt,".$exomeprefix."aa_homref,".$exomeprefix."aa_het,".$exomeprefix."aa_homalt,".$exomeprefix."popmax_af,".$exomeprefix."homref,".$exomeprefix."het,".$exomeprefix."homalt) values ('$chr".$columns[0]."',".$newentry_start.",'$newref','$newalt','".$filter."',$nfe_homref,".$het_nfe[$i].",".$hom_nfe[$i].",".$afr_homref.",".$het_afr[$i].",".$hom_afr[$i].",".$af_popmax[$i].",".$homref.",".$het[$i].",".$hom[$i].") ON DUPLICATE KEY UPDATE ".$exomeprefix."filter='".$filter."', ".$exomeprefix."ea_homref=".$exomeprefix."ea_homref + ".$nfe_homref .", ".$exomeprefix."ea_het=".$exomeprefix."ea_het + ".$het_nfe[$i].", ".$exomeprefix."ea_homalt=".$exomeprefix."ea_homalt + ".$hom_nfe[$i].", ".$exomeprefix."aa_homref=".$exomeprefix."aa_homref + ".$afr_homref.", ".$exomeprefix."aa_het=".$exomeprefix."aa_het + ".$het_afr[$i].", ".$exomeprefix."aa_homalt=".$exomeprefix."aa_homalt + ".$hom_afr[$i].", ".$exomeprefix."popmax_af=GREATEST(".$exomeprefix."popmax_af, ".$af_popmax[$i]."), ".$exomeprefix."homref=".$exomeprefix."homref + ".$afr_homref.", ".$exomeprefix."het=".$exomeprefix."het + ".$het[$i].", ".$exomeprefix."homalt=".$exomeprefix."homalt + ".$hom[$i].";" );
+				executeQuery("insert ignore into $exactable (chrom,start,refallele,allele,".$exomeprefix."filter,".$exomeprefix."ea_homref,".$exomeprefix."ea_het,".$exomeprefix."ea_homalt,".$exomeprefix."aa_homref,".$exomeprefix."aa_het,".$exomeprefix."aa_homalt,".$exomeprefix."popmax_af,".$exomeprefix."homref,".$exomeprefix."het,".$exomeprefix."homalt) values ('$chr".$columns[0]."',".$newentry_start.",'$newref','$newalt','".$filter."',$nfe_homref,".$het_nfe[$i].",".$hom_nfe[$i].",".$afr_homref.",".$het_afr[$i].",".$hom_afr[$i].",".$af_popmax[$i].",".$homref.",".$het[$i].",".$hom[$i].") ON DUPLICATE KEY UPDATE ".$exomeprefix."filter='".$filter."', ".$exomeprefix."ea_homref=".$exomeprefix."ea_homref + ".$nfe_homref .", ".$exomeprefix."ea_het=".$exomeprefix."ea_het + ".$het_nfe[$i].", ".$exomeprefix."ea_homalt=".$exomeprefix."ea_homalt + ".$hom_nfe[$i].", ".$exomeprefix."aa_homref=".$exomeprefix."aa_homref + ".$afr_homref.", ".$exomeprefix."aa_het=".$exomeprefix."aa_het + ".$het_afr[$i].", ".$exomeprefix."aa_homalt=".$exomeprefix."aa_homalt + ".$hom_afr[$i].", ".$exomeprefix."popmax_af=GREATEST(".$exomeprefix."popmax_af, ".$af_popmax[$i]."), ".$exomeprefix."homref=".$exomeprefix."homref + ".$homref.", ".$exomeprefix."het=".$exomeprefix."het + ".$het[$i].", ".$exomeprefix."homalt=".$exomeprefix."homalt + ".$hom[$i].";" );
 				#executeQuery("insert ignore into $exactable (chrom,start,refallele,allele,".$exomeprefix."filter,".$exomeprefix."ea_homref,".$exomeprefix."ea_het,".$exomeprefix."ea_homalt,".$exomeprefix."aa_homref,".$exomeprefix."aa_het,".$exomeprefix."aa_homalt,".$exomeprefix."popmax_homref,".$exomeprefix."popmax_het,".$exomeprefix."popmax_homalt ) values ('$chr".$columns[0]."',".$newentry_start.",'$newref','$newalt','".$filter."',$nfe_homref,".$het_nfe[$i].",".$hom_nfe[$i].",".$afr_homref.",".$het_afr[$i].",".$hom_afr[$i].",".$popmax_homref.",".$het_popmax[$i].",".$hom_popmax[$i].") ON DUPLICATE KEY UPDATE ".$exomeprefix."filter='".$filter."', ".$exomeprefix."ea_homref=".$exomeprefix."ea_homref + ".$nfe_homref .", ".$exomeprefix."ea_het=".$exomeprefix."ea_het + ".$het_nfe[$i].", ".$exomeprefix."ea_homalt=".$exomeprefix."ea_homalt + ".$hom_nfe[$i].", ".$exomeprefix."aa_homref=".$exomeprefix."aa_homref + ".$afr_homref.", ".$exomeprefix."aa_het=".$exomeprefix."aa_het + ".$het_afr[$i].", ".$exomeprefix."aa_homalt=".$exomeprefix."aa_homalt + ".$hom_afr[$i].", ".$exomeprefix."popmax_homref=".$exomeprefix."popmax_homref + ".$popmax_homref.", ".$exomeprefix."popmax_het=".$exomeprefix."popmax_het + ".$het_popmax[$i].", ".$exomeprefix."popmax_homalt=".$exomeprefix."popmax_homalt + ".$hom_popmax[$i].";" );
 			}
 		}
@@ -766,7 +782,7 @@ if ($kaviarFile ne "")
 			my $entry_start=$start;
 			my $alt = $alt[$alt_loop];
 			# Entry format must be reduced to minimal representation
-			my ($entry_start, $ref, $alt)=Utilities::getMinimalRepresentation($entry_start, $ref,$alt);
+			($entry_start, $ref, $alt)=Utilities::getMinimalRepresentation($entry_start, $ref,$alt);
 			
 			if ( defined $ds[$alt_loop] )
 			{ 
@@ -891,6 +907,7 @@ Kaviar:
  GnomAD:
   -g    </path/to/GnomAD> where GnomAD VCF files have been downloaded. Replaces ExAC
   -gex	</path/to/GnomAD/gnomad.exome.XXX.vcf> direct path to gnomad exome file. Not necessary if -g enabled it finds it automatically
+  -gc	</path/to/GnomAD/constraints_gene_file.bgz> direct path to gnomad gene constraints file.
   
  1000 Genomes:
   -t	<ALL.wgs.phase3_shapeit2_mvncall_integrated_v5b.20130502.sites.vcf.gz> 1000 Genomes VCF file (can be streamed directly from the web)

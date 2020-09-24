@@ -234,79 +234,94 @@ CREATE TABLE `evs` (
 ) ENGINE=MyISAM AUTO_INCREMENT=275581146 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
+
 --
--- Table structure for table `evsOLD`
+-- Table structure for table `evsscores`
 --
 
-DROP TABLE IF EXISTS `evsOLD`;
+DROP TABLE IF EXISTS `evsscores`
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `evsOLD` (
-  `idexac` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `chrom` varchar(45) NOT NULL,
-  `start` int(11) unsigned NOT NULL,
-  `refallele` varchar(255) NOT NULL DEFAULT '',
-  `allele` varchar(255) NOT NULL,
-  `filter` set('PASS','VQSR') DEFAULT NULL,
-  `ea_homref` int(11) unsigned DEFAULT NULL,
-  `ea_het` int(11) unsigned DEFAULT NULL,
-  `ea_homalt` int(11) unsigned DEFAULT NULL,
-  `aa_homref` int(11) unsigned DEFAULT NULL,
-  `aa_het` int(11) unsigned DEFAULT NULL,
-  `aa_homalt` int(11) unsigned DEFAULT NULL,
-  PRIMARY KEY (`idexac`),
-  UNIQUE KEY `uniqueexac` (`chrom`,`start`,`refallele`,`allele`)
-) ENGINE=MyISAM AUTO_INCREMENT=10195873 DEFAULT CHARSET=latin1 PAGE_CHECKSUM=1;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `evs_gnomad2`
---
-
-DROP TABLE IF EXISTS `evs_gnomad2`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `evs_gnomad2` (
-  `idexac` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `chrom` varchar(45) NOT NULL,
-  `start` int(11) unsigned NOT NULL,
-  `refallele` varchar(255) NOT NULL DEFAULT '',
-  `allele` varchar(255) NOT NULL,
-  `filter` set('PASS','VQSR') DEFAULT NULL,
-  `ea_homref` int(11) unsigned DEFAULT NULL,
-  `ea_het` int(11) unsigned DEFAULT NULL,
-  `ea_homalt` int(11) unsigned DEFAULT NULL,
-  `aa_homref` int(11) unsigned DEFAULT NULL,
-  `aa_het` int(11) unsigned DEFAULT NULL,
-  `aa_homalt` int(11) unsigned DEFAULT NULL,
-  PRIMARY KEY (`idexac`),
-  UNIQUE KEY `uniqueexac` (`chrom`,`start`,`refallele`,`allele`)
-) ENGINE=MyISAM AUTO_INCREMENT=260657407 DEFAULT CHARSET=latin1 PAGE_CHECKSUM=1;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `evs_old_20180313`
---
-
-DROP TABLE IF EXISTS `evs_old_20180313`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `evs_old_20180313` (
-  `idexac` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `chrom` varchar(45) NOT NULL,
-  `start` int(11) unsigned NOT NULL,
-  `refallele` varchar(255) NOT NULL DEFAULT '',
-  `allele` varchar(255) NOT NULL,
-  `filter` set('PASS','VQSR') DEFAULT NULL,
-  `ea_homref` int(11) unsigned DEFAULT NULL,
-  `ea_het` int(11) unsigned DEFAULT NULL,
-  `ea_homalt` int(11) unsigned DEFAULT NULL,
-  `aa_homref` int(11) unsigned DEFAULT NULL,
-  `aa_het` int(11) unsigned DEFAULT NULL,
-  `aa_homalt` int(11) unsigned DEFAULT NULL,
-  PRIMARY KEY (`idexac`),
-  UNIQUE KEY `uniqueexac` (`chrom`,`start`,`refallele`,`allele`)
-) ENGINE=MyISAM AUTO_INCREMENT=274056991 DEFAULT CHARSET=latin1 PAGE_CHECKSUM=1;
+CREATE TABLE `evsscores` (
+  `gene` varchar(150) NOT NULL,
+  `transcript` varchar(255) NOT NULL,
+  `obs_mis` double NOT NULL,
+  `exp_mis` double NOT NULL,
+  `oe_mis` double NOT NULL,
+  `mu_mis` double NOT NULL,
+  `possible_mis` double NOT NULL,
+  `obs_mis_pphen` double DEFAULT NULL,
+  `exp_mis_pphen` double DEFAULT NULL,
+  `oe_mis_pphen` double DEFAULT NULL,
+  `possible_mis_pphen` double DEFAULT NULL,
+  `obs_syn` double NOT NULL,
+  `exp_syn` double NOT NULL,
+  `oe_syn` double NOT NULL,
+  `mu_syn` double NOT NULL,
+  `possible_syn` double NOT NULL,
+  `obs_lof` double DEFAULT NULL,
+  `mu_lof` double DEFAULT NULL,
+  `possible_lof` double DEFAULT NULL,
+  `exp_lof` double DEFAULT NULL,
+  `pLI` double DEFAULT NULL,
+  `pNull` double DEFAULT NULL,
+  `pRec` double DEFAULT NULL,
+  `oe_lof` double DEFAULT NULL,
+  `oe_syn_lower` double NOT NULL,
+  `oe_syn_upper` double NOT NULL,
+  `oe_mis_lower` double NOT NULL,
+  `oe_mis_upper` double NOT NULL,
+  `oe_lof_lower` double DEFAULT NULL,
+  `oe_lof_upper` double DEFAULT NULL,
+  `constraint_flag` varchar(255) DEFAULT NULL,
+  `syn_z` double NOT NULL,
+  `mis_z` double NOT NULL,
+  `lof_z` double DEFAULT NULL,
+  `oe_lof_upper_rank` double DEFAULT NULL,
+  `oe_lof_upper_bin` double DEFAULT NULL,
+  `oe_lof_upper_bin_6` double DEFAULT NULL,
+  `n_sites` double DEFAULT NULL,
+  `classic_caf` double DEFAULT NULL,
+  `max_af` double DEFAULT NULL,
+  `no_lofs` double DEFAULT NULL,
+  `obs_het_lof` double DEFAULT NULL,
+  `obs_hom_lof` double DEFAULT NULL,
+  `defined` double DEFAULT NULL,
+  `p` double DEFAULT NULL,
+  `exp_hom_lof` double DEFAULT NULL,
+  `classic_caf_afr` double DEFAULT NULL,
+  `classic_caf_amr` double DEFAULT NULL,
+  `classic_caf_asj` double DEFAULT NULL,
+  `classic_caf_eas` double DEFAULT NULL,
+  `classic_caf_fin` double DEFAULT NULL,
+  `classic_caf_nfe` double DEFAULT NULL,
+  `classic_caf_oth` double DEFAULT NULL,
+  `classic_caf_sas` double DEFAULT NULL,
+  `p_afr` double DEFAULT NULL,
+  `p_amr` double DEFAULT NULL,
+  `p_asj` double DEFAULT NULL,
+  `p_eas` double DEFAULT NULL,
+  `p_fin` double DEFAULT NULL,
+  `p_nfe` double DEFAULT NULL,
+  `p_oth` double DEFAULT NULL,
+  `p_sas` double DEFAULT NULL,
+  `transcript_type` varchar(255) NOT NULL,
+  `gene_id` varchar(255) NOT NULL,
+  `transcript_level` double NOT NULL,
+  `cds_length` double NOT NULL,
+  `num_coding_exons` double NOT NULL,
+  `gene_type` varchar(255) NOT NULL,
+  `gene_length` double NOT NULL,
+  `exac_pLI` double DEFAULT NULL,
+  `exac_obs_lof` double DEFAULT NULL,
+  `exac_exp_lof` double DEFAULT NULL,
+  `exac_oe_lof` double DEFAULT NULL,
+  `brain_expression` tinyint(1) DEFAULT NULL,
+  `chromosome` varchar(31) NOT NULL,
+  `start_position` int(10) NOT NULL,
+  `end_position` int(10) NOT NULL,
+  KEY `gene` (`gene`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
