@@ -127,6 +127,9 @@ my $exonEnds     = shift;
 
 my $cds = "";
 
+# UCSC tracks have 'chr' prefix - but reference might not:
+$chrom =~ s/^chr//g if (! Utilities::referenceHasChr($settings) );
+ 
 
 if ($strand eq "+") 
 {

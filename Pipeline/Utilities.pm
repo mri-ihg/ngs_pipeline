@@ -359,6 +359,28 @@ sub executeCommand {
 	return $ret;
 }
 
+
+##################################################################################################################
+#referenceHasChr : checks if reference has chr Prefix
+##################################################################################################################
+# Check if the reference genome uses "chr" in front of chromosome names unless provided from command line argument
+# Useful to install the online DB where you don't need the reference file
+
+sub referenceHasChr {
+	my $setting = shift;
+	my $params = Utilities::getParams();
+	
+	my $hasChr = 0;
+	# 	Autotest if the reference needs chr prefix
+	open FAI, $params->{settings}->{$setting}->{reference}.".fai" or die("Can't open $params->{settings}->{$setting}->{reference}.fai!");
+	my $line = <FAI>;
+	$hasChr  = 1 if $line =~ /^chr/;
+	close FAI;
+	
+	return $hasChr;
+}
+
+
 ##################################################################################################################
 #twoBit: get reference sequence from fasta file. Now uses the BioPerl API instead of the twoBit program.
 ##################################################################################################################
