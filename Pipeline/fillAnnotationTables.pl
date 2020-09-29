@@ -352,7 +352,11 @@ if ($gnomadConstraintsFile ne "" )
 		exit (-1);
 	}
 
-	system "zcat $gnomadConstraintsFile | mysql -h$host -u$user -p$password $database --local-infile=1 -e 'LOAD DATA LOCAL INFILE \"/dev/stdin\" INTO TABLE $gnomadconstraintstable;'" or exit $logger->error("Can't open pipe to MySQL: | mysql -h$host -u$user -p******* $database --local-infile=1 -e 'LOAD DATA LOCAL INFILE \"/dev/stdin\" INTO TABLE $gnomadconstraintstable;'");
+	my $exit_code = system("zcat $gnomadConstraintsFile | mysql -h$host -u$user -p$password $database --local-infile=1 -e 'LOAD DATA LOCAL INFILE \"/dev/stdin\" INTO TABLE $gnomadconstraintstable;'");
+	if ($exit_code != 0) {
+		$logger->error("Can't open pipe to MySQL: | mysql -h$host -u$user -p******* $database --local-infile=1 -e 'LOAD DATA LOCAL INFILE \"/dev/stdin\" INTO TABLE $gnomadconstraintstable;'");
+		exit($exit_code >> 8);
+	}
 
 }
 
