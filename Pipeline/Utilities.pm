@@ -20,6 +20,19 @@ my $fasta;
 # current.config.xml
 $XML::Simple::PREFERRED_PARSER='XML::Parser';
 
+# Global settings to init Utilities
+my $globalsettings="";
+
+
+#######################################################################################
+#init: Initialise Utilities
+#######################################################################################
+sub init{
+		my $setting = shift;
+		
+		$globalsettings=$setting;
+}
+
 
 #######################################################################################
 #initLogger: Initialise the log4perl environment
@@ -74,7 +87,7 @@ sub getLogger{
 
 
 #######################################################################################
-#getParams: Read in  a config file
+#getParams: Read in the config file
 #######################################################################################
 sub getParams {
 	my $file = "";
@@ -101,10 +114,163 @@ sub getParams {
 
 	my $params = $xml->XMLin($file);
 
+
 	#TODO:
 	# Introduce alias mechanism for
 	#    exome kits
 	#    settings that need to override just a small number of parameters
+
+
+    # WARNING !!!
+	# DO NOT ALTER THE ORDER OF THE FOLLOWING foreach statements
+	# 
+	# each DB and DB prototype, and variation DB definition into a reference can import a SQL database connection
+	# then each DB prototype should be dispatched to the settings using it
+	# then each reference inheriting from another reference should inherit
+	# then each settings should import its reference
+	# 
+	# altering the order might lead to unpredictable results.
+
+	# DB Assignment:
+	# DBs are defined into <db><dbdefinition><host><port> etc and can be referred to into DB settings
+	
+	# SolexaDB - CoreDB - ExomeDB prototype - RNADB prototype - multisampleDB
+	foreach my $targetdb ( qw /solexadb coredb exomedb rnadb multisampledb/ )
+	{
+		if ( defined $params->{$targetdb}->{db} )
+		{
+			my $dbdefinition =  $params->{$targetdb}->{db};
+			foreach my $element ( keys %{$params->{db}->{$dbdefinition}} )
+			{
+				$params->{$targetdb}->{$element} = $params->{db}->{$dbdefinition}->{$element};
+			}
+		}
+		undef  $params->{$targetdb}->{db};
+	}
+	
+	# VariationDB
+	foreach my $reference ( keys %{$params->{references}} )
+	{
+		# The parameter variationdb might not be defined if reference inherits
+		# issuing directly:   defined $params->{references}->{$reference}->{variationdb}->{db}
+		# creates hash:  $params->{references}->{$reference}->{variationdb}
+		# which creates problem later
+		
+		if ( defined $params->{references}->{$reference}->{variationdb} )
+		{
+			if ( defined $params->{references}->{$reference}->{variationdb}->{db} )
+			{
+				my $dbdefinition =  $params->{references}->{$reference}->{variationdb}->{db};
+				foreach my $element ( keys %{$params->{db}->{$dbdefinition}} )
+				{
+					if ( ! defined $params->{references}->{$reference}->{variationdb}->{$element} )
+					{
+						$params->{references}->{$reference}->{variationdb}->{$element} = $params->{db}->{$dbdefinition}->{$element};
+					}
+				}
+			}
+			undef $params->{references}->{$reference}->{variationdb}->{db};
+		}
+	}
+	
+	
+	# References can inherit from another reference through the tag <inherits>
+	foreach my $reference ( keys %{$params->{references}} )
+	{
+		my $inherits = $params->{references}->{$reference}->{inherits};
+		
+		if ( defined $inherits )
+		{
+			foreach my $element (  keys %{$params->{references}->{$inherits}} )
+			{
+				# Overridden elements must NOT be overwritten
+				if ( ! defined  $params->{references}->{$reference}->{$element} )
+				{
+					# If scalar 
+					if ( ref $params->{references}->{$inherits}->{$element} eq ref "" )
+					{
+						$params->{references}->{$reference}->{$element} = $params->{references}->{$inherits}->{$element};
+					}
+					elsif ( ref $params->{references}->{$inherits}->{$element} eq ref {} )
+					{
+						$params->{references}->{$reference}->{$element} = \%{$params->{references}->{$inherits}->{$element}};
+					}
+					else
+					{
+						print "ERROR! I don't know what to do! :(\n";
+						exit(-1);
+					}
+				} #else{print "DEFINED $element ".$params->{references}->{$reference}->{$element}."\n";}
+			}
+		}
+		undef $params->{references}->{$reference}->{inherits};
+	}
+	
+	
+	# No need to specify reference for every setting (optional) - Reference parameters get imported into settings
+	foreach my $setting ( keys %{$params->{settings}} )
+	{
+		
+		my $refid = $params->{settings}->{$setting}->{ref};
+		if ( defined $refid && $refid ne "")
+		{
+			foreach my $element ( keys %{$params->{references}->{$refid}} )
+			{	
+				# If scalar 
+				if ( ref $params->{references}->{$refid}->{$element} eq ref "" )
+				{
+					$params->{settings}->{$setting}->{$element} = $params->{references}->{$refid}->{$element};
+				}
+				elsif ( ref $params->{references}->{$refid}->{$element} eq ref {} )
+				{
+					$params->{settings}->{$setting}->{$element} = \%{$params->{references}->{$refid}->{$element}};
+				}
+				else
+				{
+					print "ERROR! I don't know what to do! :(\n";
+					exit(-1);
+				}
+			} 
+		}
+	
+		# ExomeDB and RNADB Prototypes dispatch to settings:
+		foreach my $db ( qw /exomedb rnadb/ )
+		{
+			foreach my $setting ( keys %{$params->{settings}} )
+			{
+				if ( defined $params->{settings}->{$setting}->{$db} )
+				{
+					if ( defined $params->{settings}->{$setting}->{$db}->{db} )
+					{
+						my $dbdefinition =  $params->{settings}->{$setting}->{$db}->{db};
+						foreach my $element ( keys %{$params->{db}->{$dbdefinition}} )
+						{
+							$params->{settings}->{$setting}->{$db}->{$element} = $params->{db}->{$dbdefinition}->{$element};
+							#print ">$setting $dbdefinition $element $db ".$params->{db}->{$dbdefinition}->{$element}."\n";
+						}
+					}
+					undef $params->{settings}->{$setting}->{$db}->{db};
+					
+					if  ( defined $params->{settings}->{$setting}->{$db}->{inherits} )
+					{
+						if ( $params->{settings}->{$setting}->{$db}->{inherits} eq "true" )
+						{
+							foreach my $element ( keys %{$params->{$db}} )
+							{
+								if ( ! defined $params->{settings}->{$setting}->{$db}->{$element} )
+								{
+									$params->{settings}->{$setting}->{$db}->{$element}=$params->{$db}->{$element};
+								}
+							}
+						}
+					}
+					undef $params->{settings}->{$setting}->{$db}->{inherits};
+				}
+			}	
+		}
+		
+		#print "Setting: $setting\tRef: ".$params->{settings}->{$setting}->{reference}."\tRefname: ".$params->{settings}->{$setting}->{refname}."\tAncoratu:".$params->{settings}->{$setting}->{ancora}->{tu}."\n";
+	} 
 
 	return $params;
 }
@@ -942,9 +1108,9 @@ sub getVCF {
 ############################################################
 sub getReferenceLen		
 {
-	my $settings = shift;
+	my $setting = shift;
 	my $params 	= 	Utilities::getParams();
-	my $ref =		$params->{settings}->{$settings}->{reference};
+	my $ref =		$params->{settings}->{$setting}->{reference};
 	my $fai =		$ref.".fai";
 		
 	
@@ -962,6 +1128,44 @@ sub getReferenceLen
 	
 	return $length;
 }
+
+
+############################################################
+#getReferenceSeq
+############################################################
+sub getReferenceSeq
+{
+	
+	my $pos     = shift;
+	my $setting = shift; 
+	my $removenewline = shift;
+	
+	$removenewline = 1 if ( ! defined $removenewline );
+	
+	   $setting = $globalsettings if !(defined ($setting));
+	my $params 	= 	Utilities::getParams();
+	my $ref =		$params->{settings}->{$setting}->{reference};
+	my $fai =		$ref.".fai";
+	
+	my $samtools = Utilities::getProgram("samtools");
+	
+	
+	# Is it a valid query string? 
+	if ( ! validateChrPosGeneric($pos) )
+	{
+		return ""; 
+	}	
+	
+	
+	my $command = "$samtools faidx $ref $pos | grep -v '>'" ;
+	
+	my $sequence =  `$command 2>/dev/null`;
+	$sequence =~ s/\n//g if $removenewline;
+	
+	return $sequence;
+	
+}
+
 
 ############################################################
 #validateChrPos				chr[XYM]:[1-9][0-9]*-[1-9][0-9]*
@@ -1290,6 +1494,63 @@ sub getGVCFPath4
 	
 }
 
+
+# Getting Parameters
+sub getReference
+{
+	my $setting = shift;
+    my $params = Utilities::getParams;
+    
+    $setting = $globalsettings if !(defined ($setting));
+	
+	return $params->{settings}->{$setting}->{reference};
+}
+
+
+# Get Program:
+sub getProgram()
+{
+	my $program = shift;
+	my $params = Utilities::getParams();
+	
+	return $params->{programs}->{$program}->{path};
+}
+
+
+#################################################################################################
+sub getStartTime {
+	my $minOffset = shift;
+	my $firstTime = "";
+		$firstTime = shift;
+
+	my $dt;
+	my $tz = DateTime::TimeZone->new( name => 'local' );
+	if ( $firstTime eq "" ) {
+		$dt = DateTime->now;
+		$dt->set_time_zone($tz);
+	}
+	else {
+		my ( $date, $time ) = split( ",", $firstTime );
+		my ( $day, $month, $year ) = split( /\./, $date );
+		my ( $hour, $minute ) = split( ":", $time );
+		$dt = DateTime->new(
+			year      => $year,
+			month     => $month,
+			day       => $day,
+			hour      => $hour,
+			minute    => $minute,
+			time_zone => $tz
+		);
+	}
+
+	$dt->add( minutes => $minOffset );
+
+	my $hour   = sprintf( "%02d", $dt->hour );
+	my $minute = sprintf( "%02d", $dt->minute );
+	my $date   = $dt->ymd("");
+
+	return "$date$hour$minute";
+}
 
 
 

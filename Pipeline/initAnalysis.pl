@@ -13,6 +13,7 @@ use Pod::Usage;
 umask(002);
 
 my $prog_path = dirname( abs_path($0) );
+require $prog_path . "/Utilities.pm";
 
 my $flowcell          = "";
 my $runfolder         = "/data/runs/Runs/";
@@ -196,7 +197,11 @@ if ( $mergeOnly ne "" ) {
 
 #read config file
 my $xml    = new XML::Simple;
-my $params = $xml->XMLin($configfile);
+my $analysisparams = $xml->XMLin($configfile);
+
+# Get global configuration pipeline
+my $params = Utilities::getParams();
+
 
 #connect to database
 my $db     = $params->{solexadb}->{database};
@@ -317,7 +322,7 @@ sub init {
 				  ;    #add "sleep" minutes to the starttime of all other jobs
 			}
 
-			my $starttime    = &getStartTime($addedSleepTime);
+			my $starttime    = &Utilities::getStartTime($addedSleepTime, $firstTime);
 			my $formatedTime =
 			    substr( $starttime, 6, 2 ) . "."
 			  . substr( $starttime, 4,  2 ) . "."
@@ -464,10 +469,10 @@ sub initSample {
 				$globOrganism = lc $organism;
 			}
 			if ( $globalSettings eq "" ) {
-				if($params->{settings}->{ lc $organism }->{$libtype}){
-					$settings = $params->{settings}->{ lc $organism }->{$libtype}->{$version};		#TW 11.06.2014: there are now special entries in the config file for certain libtypes, e.g. amplicon
+				if($analysisparams->{settings}->{ lc $organism }->{$libtype}){
+					$settings = $analysisparams->{settings}->{ lc $organism }->{$libtype}->{$version};		#TW 11.06.2014: there are now special entries in the config file for certain libtypes, e.g. amplicon
 				}else{
-					$settings = $params->{settings}->{ lc $organism }->{$version};
+					$settings = $analysisparams->{settings}->{ lc $organism }->{$version};
 				}
 			}
 			else {
@@ -840,9 +845,9 @@ qx/ls -d $fcpath\/Data\/Intensities\/BaseCalls\/GERALD* 2> \/dev\/null/;
 				$globOrganism = lc $organism;
 			}
 			if ( $globalSettings eq "" ) {
-				if(defined $params->{settings}->{ lc $organism }->{$libtype}){
-					if(defined $params->{settings}->{ lc $organism }->{$libtype}->{$version}){
-						$settings = $params->{settings}->{ lc $organism }->{$libtype}->{$version};
+				if(defined $analysisparams->{settings}->{ lc $organism }->{$libtype}){
+					if(defined $analysisparams->{settings}->{ lc $organism }->{$libtype}->{$version}){
+						$settings = $analysisparams->{settings}->{ lc $organism }->{$libtype}->{$version};
 						print STDERR "\tUsing settings: $settings\n";
 					}else{
 						print STDERR "No settings defined for organism: $organism - libtype: $libtype - version: $version: Nothing done for sample $sample\n"; 	#TW 24.02.2016: if the current combination of organism/libtype/version is not defined --> don't do anything for this sample!
@@ -851,8 +856,8 @@ qx/ls -d $fcpath\/Data\/Intensities\/BaseCalls\/GERALD* 2> \/dev\/null/;
 						print STDERR "Just create BAM from FASTQ files in project folder\n";
 					}
 							
-				}elsif(defined $params->{settings}->{ lc $organism }->{$version}){
-					$settings = $params->{settings}->{ lc $organism }->{$version};
+				}elsif(defined $analysisparams->{settings}->{ lc $organism }->{$version}){
+					$settings = $analysisparams->{settings}->{ lc $organism }->{$version};
 					print STDERR "\tUsing settings: $settings\n";
 				}else{
 					print STDERR "No settings defined for organism: $organism - libtype: $libtype - version: $version: Nothing done for sample $sample\n"; 	#TW 24.02.2016: if the current combination of organism/libtype/version is not defined --> don't do anything for this sample!
@@ -921,13 +926,18 @@ qx/ls -d $fcpath\/Data\/Intensities\/BaseCalls\/GERALD* 2> \/dev\/null/;
 		
 		
 		#TW 24.02.2015: if $projectfolder is not given --> set based on $version
+		# If projectfolder not given look for it into settings
 		if($projectfolder eq ""){
-			if($settings eq "hg38") {
-				$projectfolder = $params->{dirs}->{hg38projectfolder};
-			} elsif($version eq "gatk"){
-				$projectfolder = $params->{dirs}->{projectfolder} . "plus";
+			if ( defined $params->{settings}->{$settings}->{analysis}->{folder} ){
+				$projectfolder = $params->{settings}->{$settings}->{analysis}->{folder};
 			}else{
-				$projectfolder = $params->{dirs}->{projectfolder};      #default
+				if($settings eq "hg38") {
+					$projectfolder = $analysisparams->{dirs}->{hg38projectfolder};
+				} elsif($version eq "gatk"){
+					$projectfolder = $analysisparams->{dirs}->{projectfolder} . "plus";
+				}else{
+					$projectfolder = $analysisparams->{dirs}->{projectfolder};      #default
+				}
 			}
 		}
 		
@@ -941,8 +951,8 @@ qx/ls -d $fcpath\/Data\/Intensities\/BaseCalls\/GERALD* 2> \/dev\/null/;
 		  );
 
 		#print "outfolder: $projectfolder/$project/$sample/$libtype.$libpair.pipeline.ini\n";
-		my $folder    = "$libtype$params->{dirs}->{out}";
-		my $subfolder = "$libpair$params->{dirs}->{out}";
+		my $folder    = "$libtype$analysisparams->{dirs}->{out}";
+		my $subfolder = "$libpair$analysisparams->{dirs}->{out}";
 
 		if ($clearOut) {
 			print "Deleting all files in outputfolder: rm \"$projectfolder/$project/$sample/$folder/$subfolder/*\"\n";    #clear out folder
@@ -1029,29 +1039,26 @@ qx/ls -d $fcpath\/Data\/Intensities\/BaseCalls\/GERALD* 2> \/dev\/null/;
 			print OUT "FALSE\n";
 		}
 
+		# Some IFs about target kits to get RID of
 		if ( $exome == 1 || $libtype eq "MIP" ) {
 			if ( $usedkit ne "" ) {
-				if( ref $params->{targets}->{$usedkit} eq ref {} && $params->{targets}->{$usedkit}->{$settings}){
-					print OUT "target     :  $params->{targets}->{$usedkit}->{$settings}\n";
-				}else{
-					print OUT "target     :  $params->{targets}->{$usedkit}\n";
-				}
+				print OUT "target     :  $params->{settings}->{$settings}->{targets}->{$usedkit}->{bed}\n";
 				print OUT "#window that should be added around each target region for variant calling\n";
-				print OUT "targetWin  :  $params->{windows}->{$usedkit}\n";
+				print OUT "targetWin  :  $params->{settings}->{$settings}->{targets}->{$usedkit}->{windows}\n";
 				print OUT "assay      :  $usedkit\n";
 			}
 		}elsif($libtype eq "genomic" && $globOrganism eq "human" && ($settings eq "hg19_plus")){
-			print OUT "target     :  $params->{targets}->{genomic}\n";
+			print OUT "target     :  $params->{settings}->{$settings}->{targets}->{genomic}->{bed}\n";
 			print OUT  "#window that should be added around each target region for variant calling\n";
-			print OUT "targetWin  :  $params->{windows}->{genomic}\n";
+			print OUT "targetWin  :  $params->{settings}->{$settings}->{targets}->{genomic}->{windows}\n";
 			#print OUT #"#region to filter pindel calls (different in genomic samples)\n";
 			#print OUT "pindelreg  :  $params->{targets}->{genomicpindel}\n";
 		}elsif($libtype eq "mtDNA") {
-			print OUT "target     :  $params->{targets}->{mtDNA}\n";	
+			print OUT "target     :  $params->{settings}->{$settings}->{targets}->{mtDNA}->{bed}\n";	
 		}elsif($libtype eq "genomic" && $globOrganism eq "mouse" && ($settings eq "mm10")){
-			print OUT "target     :  $params->{targets}->{genomicmouse}\n";
+			print OUT "target     :  $params->{settings}->{$settings}->{targets}->{genomicmouse}->{bed}\n";
 			print OUT "#window that should be added around each target region for variant calling\n";
-			print OUT "targetWin  :  $params->{windows}->{genomicmouse}\n";
+			print OUT "targetWin  :  $params->{settings}->{$settings}->{targets}->{genomicmouse}->{windows}\n";
 		}
 		if ($libtype eq "RNA" && $usedkit ne "") {
 			print OUT "assay      :  $usedkit\n";
@@ -1092,7 +1099,7 @@ else";
 		} else {
 			if ( $runFile eq "" ) {
 				$arrayRef =
-				  $params->{runs}->{alignmentOnly}
+				  $analysisparams->{runs}->{alignmentOnly}
 				  ->{run};    #insert alignmentOnly runs
 				if ($noAlignment) {
 					print OUT "#run  :  $arrayRef\n";
@@ -1102,7 +1109,7 @@ else";
 				}
 	
 				$arrayRef =
-				  $params->{runs}->{standard}->{run};    #insert merge & stats
+				  $analysisparams->{runs}->{standard}->{run};    #insert merge & stats
 				my @standardRuns = @$arrayRef;
 				if ( $align == 1 || $noMerge ) {
 					foreach (@standardRuns) {
@@ -1116,7 +1123,7 @@ else";
 				}
 				
 				$arrayRef =
-				  $params->{runs}->{genome}->{run};    #insert genomic only runs
+				  $analysisparams->{runs}->{genome}->{run};    #insert genomic only runs
 				my @genomicRuns = @$arrayRef;
 				if(($libtype eq "genomic" ) && (!$noVariantCalling)){
 					foreach (@genomicRuns) {
@@ -1129,7 +1136,7 @@ else";
 				}
 				
 				$arrayRef =
-				  $params->{runs}->{genomedb}->{run};    #insert genomic only runs - DB insertion
+				  $analysisparams->{runs}->{genomedb}->{run};    #insert genomic only runs - DB insertion
 				my @genomicDBRuns = @$arrayRef;
 				if(($libtype eq "genomic" ) && ( (!$noVariantCalling) && (!$noDB) )){
 					foreach (@genomicDBRuns) {
@@ -1142,7 +1149,7 @@ else";
 				}
 	
 				$arrayRef =
-				  $params->{runs}->{exome}->{run};    #insert exome runs, if needed
+				  $analysisparams->{runs}->{exome}->{run};    #insert exome runs, if needed
 				my @exomeRuns = @$arrayRef;
 				if ( (($exome == 1 || ($libtype eq "genomic" && ($globOrganism eq "human" || $globOrganism eq "mouse" )) || $libtype eq "MIP" || ($libtype eq "RNA" && $callRNAVariants == 1 && $globOrganism eq "human")) && $merge == 0 && $align == 0 ) && (!$noVariantCalling) ){
 					foreach (@exomeRuns) {
@@ -1156,7 +1163,7 @@ else";
 				}
 				
 				$arrayRef =
-				  $params->{runs}->{exomedb}->{run};    #insert exome runs, if needed - DB insertion
+				  $analysisparams->{runs}->{exomedb}->{run};    #insert exome runs, if needed - DB insertion
 				my @exomeDBRuns = @$arrayRef;
 				if ( (($exome == 1 || ($libtype eq "genomic" && ($globOrganism eq "human" || $globOrganism eq "mouse" )) || $libtype eq "MIP" || ($libtype eq "RNA" && $callRNAVariants == 1 && $globOrganism eq "human")) && $merge == 0 && $align == 0 ) && ( (!$noVariantCalling) && (!$noDB) ) ){
 					foreach (@exomeDBRuns) {
@@ -1172,7 +1179,7 @@ else";
 				
 				#ChIP-Seq
 				$arrayRef =
-				  $params->{runs}->{chipseq}->{run};
+				  $analysisparams->{runs}->{chipseq}->{run};
 				
 				if ( ( $libtype eq "ChIP-Seq" || $libtype eq "xC-Seq" || $libtype eq "ATAC-Seq") && (!$noVariantCalling) ) {
 					print OUT "run  :  $arrayRef\n";
@@ -1181,7 +1188,7 @@ else";
 				
 				#RNA-seq stuff
 				$arrayRef =
-				  $params->{runs}->{rnaseq}->{run};
+				  $analysisparams->{runs}->{rnaseq}->{run};
 				my @rnaseqRuns = @$arrayRef;
 				if ( ( $exome == 0 && $noCount == 0 && $libtype eq "RNA" ) && (!$noVariantCalling) ) {
 					foreach (@rnaseqRuns) {
@@ -1197,7 +1204,7 @@ else";
 		
 				#mtDNA stuff
 					$arrayRef =
-				  $params->{runs}->{mtDNA}->{run};    #insert exome runs, if needed
+				  $analysisparams->{runs}->{mtDNA}->{run};    #insert exome runs, if needed
 				my @mtDNARuns = @$arrayRef;
 				if ( ( $libtype eq "mtDNA" ) && (!$noVariantCalling) ) {
 					foreach (@mtDNARuns) {
@@ -1269,7 +1276,7 @@ else";
 			$addedSleepTime +=
 			  $sleep;    #add "sleep" minutes to the starttime of all other jobs
 		}
-		my $starttime = &getStartTime($addedSleepTime);
+		my $starttime = &Utilities::getStartTime($addedSleepTime, $firstTime);
 
 		if ( $sgequeue ne "" && $runFile ne "EMPTY") {
 			my $currentlog;
@@ -1349,38 +1356,6 @@ sub parseBamHeader {
 	return "";
 }
 
-#################################################################################################
-sub getStartTime {
-	my $minOffset = shift;
-
-	my $dt;
-	my $tz = DateTime::TimeZone->new( name => 'local' );
-	if ( $firstTime eq "" ) {
-		$dt = DateTime->now;
-		$dt->set_time_zone($tz);
-	}
-	else {
-		my ( $date, $time ) = split( ",", $firstTime );
-		my ( $day, $month, $year ) = split( /\./, $date );
-		my ( $hour, $minute ) = split( ":", $time );
-		$dt = DateTime->new(
-			year      => $year,
-			month     => $month,
-			day       => $day,
-			hour      => $hour,
-			minute    => $minute,
-			time_zone => $tz
-		);
-	}
-
-	$dt->add( minutes => $minOffset );
-
-	my $hour   = sprintf( "%02d", $dt->hour );
-	my $minute = sprintf( "%02d", $dt->minute );
-	my $date   = $dt->ymd("");
-
-	return "$date$hour$minute";
-}
 
 =head1 NAME
 

@@ -352,7 +352,8 @@ if ($gnomadConstraintsFile ne "" )
 		exit (-1);
 	}
 
-	my $command="zcat $gnomadConstraintsFile | mysql -h$host -u$user -p$password $database --local-infile=1 -e 'LOAD DATA LOCAL INFILE \"/dev/stdin\" INTO TABLE $gnomadconstraintstable;'";
+	# Straight import the file (tail -n +2 skips header)
+	my $command="zcat $gnomadConstraintsFile | tail -n +2 | mysql -h$host -u$user -p$password $database --local-infile=1 -e 'LOAD DATA LOCAL INFILE \"/dev/stdin\" INTO TABLE $gnomadconstraintstable;'";
 	
 	if (&Utilities::executeCommand($command, "Importing GnomAD constraints table", $logger)) {
 			exit;

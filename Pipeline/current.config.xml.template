@@ -1,0 +1,570 @@
+<!--
+	current.config.xml
+	
+	2020-10-22		Riccardo Berutti
+	
+	Structure:
+	
+	<config>
+		<programs>
+			<PROGRAMNAME>
+				<path>PATHTOEXECUTABLE</path>
+			</PROGRAMNAME>
+		</programs>
+		<scripts>
+			<SCRIPTNAME>SCRIPT/PATH/SCRIPT.pl -BASEARGS</SCRIPTNAME>
+		</scripts>
+		<db>
+			<default>
+				<host>MAINDBHOST</host>
+				<port>MAINDBPORT</port>
+				<user>MAINDBUSER</user>
+				<password>MAINDBPWD</password>
+			</default>
+			<ALTERNATIVEDBNAMEFORREFDB>
+				<host>localhost</host>
+				<port>DBPORTALT</port>
+				<user>DBUSERALT</user>
+				<password>DBPWDALT</password>
+			</ALTERNATIVEDBNAMEFORREFDB>
+		</db>
+		
+		<solexadb>
+			LIMS DATABASE PARAMETERS
+		</solexadb>
+		
+		<coredb>
+			SAMPLE DATABASE
+		</coredb>
+		
+		<exomedb>
+			TEMPLATE FOR ANALYSIS RESULTS DB
+		</exomedb>
+		
+		<rnadb>
+			TEMPLATE FOR ANALYSIS RESULTS DB FOR RNA
+		</rnadb>
+		
+		<misc>
+			CUSTOM TAGS
+		</misc>
+		
+		<references>
+			<REFNAME>
+				<refname>MYREFERENCENAME</refname>
+				<reference>/PATH/TO/REFERENCE.fa</reference>
+				MORE TRACKS USED FOR ANALYSIS
+			</REFNAME>
+			
+			<REFNAME2>
+				<inherits>REFNAME</inherits>
+				IF INHERITS SPECIFIED AS FIRST: TAKES ALL TAGS FROM REFNAME
+				and the tags following it are overridden
+				<refname>MYREFERENCENAME2</refname>
+			</REFNAME2>
+		</references>
+		
+		ANALYSIS SETTINGS FOLLOW:
+		<settings>
+			<SETTINGSNAME>
+				<ref>REFNAME</ref> AS SPECIFIED IN references SECTION		
+				<analysis>
+					<folder>/PATH/TO/ANALYSIS/FOLDER</folder>
+					<runfolder>/PATH/TO/FASTQ/FOLDER</runfolder>
+				</analysis>
+				<exomedb>
+					<inherits>true</inherits> IF TRUE TAKES exomedb SECTION DATA
+					<database>SETTTINGSNAME_DBNAME</database> OVERRIDE SETTING
+				</exomedb>
+				<rnadb>
+					<inherits>true</inherits>
+					<database>SETTINGSNAME_RNADBNAME</database>
+				</rnadb>
+			</SETTINGSNAME>
+		</settings>	
+	</config>		
+
+-->
+
+<config>
+	<programs>	<!-- keep alphabetical order for easy maintenance -->
+		<bamutil>
+			<path>/PATH/TO/seq/gotCloud/bin/bam</path>
+		</bamutil>
+		<bcftools>
+			<path>/PATH/TO/seq/utils/bcftools-1.11.16/bcftools/bcftools</path>
+			<ver>1.11.16</ver><!--requirement -->
+		</bcftools>
+		<bedtools>
+			<path>/PATH/TO/seq/BEDTools</path>
+			<getversion>/PATH/TO/seq/BEDTools/bedtools --version 2&gt;&amp;1</getversion>
+			<intersectbed>/usr/local/bin/intersectBed</intersectbed>
+		</bedtools>
+		<bgzip>
+			<path>/PATH/TO/seq/tabix/bgzip</path>
+			<getversion>/PATH/TO/seq/tabix/tabix 2&gt;&amp;1 | grep Version</getversion>
+		</bgzip>
+		<breakdancer>
+			<path>/PATH/TO/seq/breakdancer/cpp/breakdancer-max</path>
+			<getverion>/PATH/TO/seq/breakdancer/cpp/breakdancer-max 2&gt;&amp;1 | grep Version</getverion>
+			<config>/PATH/TO/seq/breakdancer/perl/bam2cfg.pl</config>
+		</breakdancer>
+		<bwa>
+			<path>/usr/local/bin/bwa</path>
+			<readtrim>15</readtrim>
+			<getversion>/usr/local/bin/bwa 2&gt;&amp;1 | grep Version</getversion>
+		</bwa>
+		<cnvnator>
+			<path>/PATH/TO/seq/CNVnator/src/cnvnator</path>
+			<rootlibs>/PATH/TO/seq/CNVnator/root/lib</rootlibs>
+			<getversion>/PATH/TO/seq/CNVnator/src/cnvnator 2&gt;&amp;1 | grep "CNVnator v"</getversion>
+			<cnvnator2vcf>/PATH/TO/seq/CNVnator/cnvnator2VCF.pl</cnvnator2vcf>
+		</cnvnator>
+		<conifer>
+			<python>python2.7</python>
+			<path>/PATH/TO/seq/conifer/conifer.py</path>
+		</conifer>
+		<convert>
+			<path>/usr/bin/convert</path>
+		</convert>
+		<cutadapt>
+			<path>/usr/bin/cutadapt</path>
+			<adaptersequence>AGATCGGAAGAGC</adaptersequence>
+		</cutadapt>
+		<docker>
+			<path>docker</path>
+		</docker>
+		<deepvariant>
+			<path>PREINSTALLED_NOT_APPLICABLE</path>
+			<binversion>1.0.0</binversion>
+			<shards>8</shards>
+		</deepvariant>
+		<EPACTS>
+			<classic>/PATH/TO/seq/EPACTS-3.2.6_bin/bin/epacts</classic>
+			<path>/PATH/TO/seq/EPACTS_3.3.0_bin/bin/epacts</path>
+		</EPACTS>
+		<exomeDepth>
+			<!-- R scripts are in the pipeline folder -->
+			<getBamCounts>getBamCounts.R</getBamCounts>
+			<cnv>cnv.R</cnv>
+			<cnv2pdf>cnv2pdf.R</cnv2pdf>
+			<genomicSuperDups>/PATH/TO/ExomeDepthScripts/genomicSuperDups.bed</genomicSuperDups>
+			<dgv>/PATH/TO/ExomeDepthScripts/dgv.bed</dgv>
+			<!-- targets have been moved into REFERENCE folder -->
+		</exomeDepth>
+		<htseq>
+			<count>/usr/local/bin/htseq-count</count>
+		</htseq>
+		<IGVtools>
+			<path>/PATH/TO/seq/IGVTools/igvtools.jar</path>
+		</IGVtools>
+		<java>
+			<path>/opt/jre1.8.0/bin/java</path>
+			<getversion>/opt/jre1.8.0/bin/java -version 2&gt;&amp;1 | grep "java version"</getversion>
+		</java>
+		<java7>
+			<path>/opt/jre1.7.0/bin/java</path>
+			<getversion>/opt/jre1.7.0/bin/java -version 2&gt;&amp;1 | grep "java version"</getversion>
+		</java7>
+		<gatk>
+			<path>/PATH/TO/seq/GenomeAnalysisTK-3.8/GenomeAnalysisTK.jar</path>
+			<tmpdir>/PATH/TO/seq/scripts/pipeline/gatk.tmp</tmpdir>
+			<getversion>/opt/jre1.8.0/bin/java -jar /PATH/TO/seq/GenomeAnalysisTK-3.8/GenomeAnalysisTK.jar -version 2&gt;&amp;1</getversion>
+		</gatk>
+		<gatk4>
+			<path>/PATH/TO/seq/GenomeAnalysisTK-4.1.0.0/gatk</path>
+			<tmpdir>/PATH/TO/seq/scripts/pipeline/gatk.tmp</tmpdir>
+			<getversion>echo GenomeAnalysisTK-4.1.0.0</getversion>
+		</gatk4>
+		<lumpy>
+			<path>/PATH/TO/seq/lumpy-sv</path>
+		</lumpy>
+		<manta>
+			<path>configManta.py</path>
+		</manta>
+		<picard>
+			<path>/PATH/TO/seq/picard/picard.jar</path>
+			<getversion>/opt/jre1.8.0/bin/java -jar /PATH/TO/seq/picard/picard.jar SamToFastq 2&gt;&amp;1 | grep Version</getversion>
+		</picard>
+		<pindel>
+			<path>/PATH/TO/seq/pindel/pindel</path>
+			<getversion>/PATH/TO/seq/pindel/pindel 2>1 | grep "Pindel version" | uniq</getversion>
+			<pindel2vcf>/PATH/TO/seq/pindel/pindel2vcf</pindel2vcf>
+			<pindelparams>
+				<A>20</A>
+			</pindelparams>
+			<pindel2vcfparams>
+				<pr>5</pr>
+				<is>7</is>
+			</pindel2vcfparams>
+		</pindel>		
+		<python27>
+			<path>/usr/local/bin/python2.7</path>
+		</python27>
+		<rnaseqc>
+			<path>/PATH/TO/seq/RNA-SeQC/RNA-SeQC_v1.1.8.jar</path>
+			<outputfolder>RNASeQCoutput</outputfolder>
+			<outputfilename>metrics.tsv</outputfilename>
+		</rnaseqc>
+		<Rscript>
+			<path>/usr/local/bin/Rscript</path>
+		</Rscript>
+		<rseqc>
+			<path>/PATH/TO/seq/RSeQC-2.6.1/</path>
+			<outputfolder>RSeQCOutput</outputfolder>
+		</rseqc>
+		<samtools>
+			<path>/PATH/TO/seq/samtools/samtools</path>
+			<getversion>/PATH/TO/seq/samtools/samtools 2&gt;&amp;1 | grep Version</getversion>
+			<vcfutils>/PATH/TO/seq/samtools/bcftools/vcfutils.pl</vcfutils>
+			<bcftools>/PATH/TO/seq/samtools/bcftools/bcftools</bcftools>
+			<maxmem>2000000000</maxmem>
+			<mpileupparams>
+				<C>0</C>
+				<m>3</m>
+				<F>0.0002</F>
+				<d>999999</d>
+				<q>20</q>
+				<E></E>
+				<L>999999</L>
+			</mpileupparams>
+			<varfilterparams>
+				<Q>25</Q>
+				<d>3</d>
+				<D>9999</D>
+				<a>2</a>
+				<w>10</w>
+				<W>10</W>
+				<p1>0.0001</p1>
+				<p2>1e-400</p2>
+				<p3>0</p3>
+				<p4>0.0001</p4>
+			</varfilterparams>
+		</samtools>
+		<sissrs>
+			<path>/PATH/TO/seq/sissrs/sissrs.pl</path>
+		</sissrs>
+		<snpeff>
+			<path>/PATH/TO/seq/snpEff/snpEff.jar</path>
+			<getversion>/opt/jre1.8.0/bin/java -jar /PATH/TO/seq/snpEff/snpEff.jar 2&gt;&amp;1 | grep "snpEff version"</getversion>
+		</snpeff>
+		<SnpSift>
+			<path>/PATH/TO/seq/snpEff/SnpSift.jar</path>
+			<getversion>/opt/jre1.8.0/bin/java -jar /PATH/TO/seq/snpEff/SnpSift.jar 2&gt;&amp;1 | grep "SnpSift version"</getversion>
+		</SnpSift>
+		<star>
+			<path>/PATH/TO/seq/STAR-master/bin/Linux_x86_64/STAR</path>
+			<getversion>echo STAR_2.4.2a</getversion>
+			<command>
+				<logfile>STAR.log</logfile>
+			</command>
+		</star>
+		<starfusion>
+			<path>/PATH/TO/seq/STAR-master/STAR-Fusion-0.1.1/STAR-Fusion</path>
+			<getversion>echo STAR-Fusion-0.1.1</getversion>
+			<command>
+				<logfile>STAR.log</logfile>
+			</command>
+		</starfusion>
+		<tabix>
+			<path>/PATH/TO/seq/tabix/tabix</path>
+			<getversion>/PATH/TO/seq/tabix/tabix 2&gt;&amp;1 | grep Version</getversion>
+		</tabix>
+		<tophat2>
+			<path>/PATH/TO/seq/tophat-2.1.0.Linux_x86_64/tophat2</path>
+			<getversion>/PATH/TO/seq/tophat-2.1.0.Linux_x86_64/tophat2 -v</getversion>
+			<command>
+				<logfile>Tophat2.log</logfile></command>
+		</tophat2>
+		<vcftools>
+			<path>/PATH/TO/seq/VCFtools/bin/vcftools</path>
+			<getversion>/PATH/TO/seq/VCFtools/bin/vcftools | grep VCFtools</getversion>
+			<lib>/PATH/TO/seq/VCFtools/lib/</lib>
+			<sort>/PATH/TO/seq/VCFtools/bin/vcf-sort</sort>
+			<merge>/PATH/TO/seq/VCFtools/bin/vcf-merge</merge>
+			<concat>/PATH/TO/seq/VCFtools/bin/vcf-concat</concat>
+			<pm>/PATH/TO/seq/VCFtools/perl/Vcf.pm</pm>
+		</vcftools>
+		<verifybamid>
+			<path>/PATH/TO/seq/verifyBamID/verifyBamID/bin/verifyBamID</path>
+		</verifybamid>
+		<whamg>
+                        <path>/PATH/TO/seq/whamg/wham/bin/whamg</path>
+                        <filterprogram>/PATH/TO/seq/whamg/wham/utils/filtWhamG.pl</filterprogram>
+                        <annotationprogram>/PATH/TO/seq/whamg/wham/utils/annotate_hq.py</annotationprogram>
+        </whamg>
+        
+		<!-- Scripts by task -->
+		<rnaseq>
+			<RScripts><!--RScripts are in the Pipeline folder-->
+				<DESeq>DESeq.R</DESeq>
+				<DESeq2>DESeq2.R</DESeq2>
+				<DESeq2_local>DESeq2_local.R</DESeq2_local>
+				<DEXSeq>DEXSeq.R</DEXSeq>
+				<edgeR>edgeR.R</edgeR>
+				<goseq>GOAnalysis_goseq.R</goseq>
+				<pathway>gagePathwayAnalysis.R</pathway>
+			</RScripts>
+			<htseqfilemerger>htseqOutputFileMerger.pl</htseqfilemerger>
+			<translateidcolumn>translateIDColumn.pl</translateidcolumn>
+			<dbInsert>insertDBrnaSeqGeneWise.pl</dbInsert>
+		</rnaseq>
+		<chipseq>
+			<spp>run_spp_nodups.R</spp>
+			<DiffBind>DiffBind.R</DiffBind>
+		</chipseq>
+		
+	</programs>
+	
+	<scripts>	<!-- internal scripts of the pipeline -->
+		<parseConfig>pipelinecfg_gatk.pl -i</parseConfig>
+		<sequence2BAMpl>copyRunFolderFiles.pl</sequence2BAMpl>
+	</scripts>
+	
+	<db> <!-- database servers - feature can be overridden --> 
+		<default>
+			<host>DBHOST</host>
+			<port>DBPORT</port>
+			<user>DBUSER</user>
+			<password>DBPWD</password>
+		</default>
+		<localhost>
+			<host>localhost</host>
+			<port>DBPORTALT</port>
+			<user>DBUSERALT</user>
+			<password>DBPWDALT</password>
+		</localhost>
+	</db>
+	
+	<solexadb> <!-- LIMS database -->
+		<db>default</db>
+		<database>solexa</database>
+		<sample2librarytable>sample2library</sample2librarytable>
+		<librarytable>library</librarytable>
+		<libtypetable>libtype</libtypetable>
+		<libpairtable>libpair</libpairtable>
+		<assaytable>assay</assaytable>
+		<lanetable>lane</lanetable>
+		<runtable>run</runtable>
+		<opticalduplicatestable>opticalduplicates</opticalduplicatestable>
+	</solexadb>
+	
+	<coredb><!--contains sample specific data -->
+		<db>default</db>
+		<database>exomehg19</database>
+		<sampletable>sample</sampletable>
+		<stattable>exomestat</stattable>
+		<transcripttable>transcript</transcripttable>
+		<transcriptstattable>transcriptstat</transcriptstattable>
+		<genetable>gene</genetable>
+		<organismtable>organism</organismtable>
+		<percentcoveragetable>percentcoverage</percentcoveragetable>
+		<rnaseqctable>rnaseqcstat</rnaseqctable>
+		<gerptable>gerp</gerptable>
+		<chipseqstatstable>chipseqstats</chipseqstatstable>
+		<diseasetable>disease</diseasetable>
+		<disease2sampletable>disease2sample</disease2sampletable>
+		<projecttable>project</projecttable>
+		<cooperationtable>cooperation</cooperationtable>
+	</coredb>
+	
+	<exomedb><!-- exomedb prototype parameters CAN be overridden in the single settings-->
+		<db>default</db>
+		<database>DATABASENAME</database>
+		<snvtable>snv</snvtable>
+		<snvsampletable>snvsample</snvsampletable>
+		<snvsampledenovotable>snvsampledenovo</snvsampledenovotable>
+		<genetable>gene</genetable>
+		<snvgenetable>snvgene</snvgenetable>
+		<snv2diseasetable>snv2diseasegroup</snv2diseasetable><!--depth of coverage information is, if used, stored in the exomedb since it varies between species/exome kits. -->
+		<snpefftable>snpeff</snpefftable>
+		<snpeffeffecttable>snpeffeffect</snpeffeffecttable>
+		<additionalannotationtable>additionalannotation</additionalannotationtable>
+		<translocationtable>translocation</translocationtable>
+		<svtable>sv</svtable>
+		<svgenetable>svgene</svgenetable>
+		<svsampletable>svsample</svsampletable>
+		<variantstattable>variantstat</variantstattable>
+		<homozygosity>homozygosity</homozygosity>
+	</exomedb>
+	
+	<rnadb>
+		<db>default</db>
+		<database>rnahg19</database>
+		<genebasedtable>genebased</genebasedtable>
+	</rnadb>
+	
+	<misc>
+		<email_ts>email@email.com</email_ts>
+	</misc>
+	
+	<references><!--Contains all the general data common to a reference genome including DATABASE connection -->
+		<hg19_decoy>
+			<reference>/PATH/TO/goldenpath/hg19_decoy/chromosome/noPAR.hg19_decoy.fa</reference>
+			<phiX>/PATH/TO/goldenpath/hg19_decoy/chromosome/phiX_noPAR.hg19_decoy.fa</phiX>
+			<refname>hg19</refname>
+			<refdate>20150401</refdate>
+			<gatksnps>/PATH/TO/goldenpath/gatk_resource_bundle_hg19_decoy/sort.dbsnp_137.hg19.vcf</gatksnps>
+			<codingregions>/PATH/TO/goldenpath/hg19/database/merged.codingRegion.bed</codingregions>
+			<exac>/PATH/TO/goldenpath/hg19/database/filtered.chr.ExAC.r0.3.sites.vep.vcf.gz</exac>
+			<dbsnpfile>/PATH/TO/goldenpath/hg19/database/snp142.vcf.gz</dbsnpfile>
+			<GoldStandardIndels>/PATH/TO/goldenpath/gatk_resource_bundle_hg19_decoy/sort.Mills_and_1000G_gold_standard.indels.hg19.vcf</GoldStandardIndels>
+			<HapMap>/PATH/TO/goldenpath/gatk_resource_bundle_hg19_decoy/sort.hapmap_3.3.hg19.vcf</HapMap>
+			<Omni1000G>/PATH/TO/goldenpath/gatk_resource_bundle_hg19_decoy/sort.1000G_omni2.5.hg19.vcf</Omni1000G>
+			<SNPs1000G>/PATH/TO/goldenpath/gatk_resource_bundle_hg19_decoy/sort.1000G_phase1.snps.high_confidence.hg19.vcf</SNPs1000G>
+			<gnomADsnps>/PATH/TO/goldenpath/gnomad_data_2.0.2/gnomad_2.0.2_compact_hg19_recal.vcf.gz</gnomADsnps>
+			<gnomADfreqsROH>/PATH/TO/seq/analysis/datasets/gnomad_2.1.1/gnomad.genomes.r2.1.1.sites.pass.freqs.vcf.gz</gnomADfreqsROH>
+			<germansnps>/PATH/TO/goldenpath/DZHKOmics/DZHKOmics.vcf.gz</germansnps>
+			<normalchromosomes>/PATH/TO/goldenpath/hg19_decoy/chromosome/normal.chromosomes.bed</normalchromosomes>
+			<genome_splits>/PATH/TO/goldenpath/hg19_decoy/chromosome/genome_splits</genome_splits>
+			<sry>chrY:2654896-2655792</sry>
+			<sryfactor>1000000000</sryfactor>
+			<miRNAregion>/PATH/TO/seq/tools/solexa/miRNA/miRNAregion.bed</miRNAregion>
+			<additionalannotations>
+				<regulation>
+					<file>/PATH/TO/goldenpath/hg19/database/H3k27acStdPk.PeakGt10.MergedGt2.REDUCED.bed</file>
+					<info><!--annotate found regions in the INFO field of vcf -->
+						<name>regulation</name>
+						<description>Id(s) of overlapping histones in internal database.</description>
+						<what>bedname</what><!--use name column from bedfile to annotate and subsequently add this name as id to the database -->
+					</info>
+					<function>regulation</function>
+				</regulation>
+			</additionalannotations>
+			
+			<gemreference>/PATH/TO/goldenpath/hg19/chromosome/gem/hg19index.gem</gemreference>
+			<gemannotation>/PATH/TO/goldenpath/gem_annotation_files/human/ucsc/translated_ucsc/ucsc.translated.gtf</gemannotation>
+			<dgv>/PATH/TO/ExomeDepthScripts/dgv.bed</dgv><!-- for CNVnator -->
+			<genomicsuperdups>/PATH/TO/ExomeDepthScripts/genomicSuperDups.bed</genomicsuperdups><!-- for CNVnator -->
+			<gap>/PATH/TO/ExomeDepthScripts/gap.bed</gap><!-- for CNVnator -->
+			<referenceperchrom>/PATH/TO/goldenpath/hg19_decoy/chromosome/single_chromosomes/</referenceperchrom><!-- for CNVnator -->
+			<refseqexons>/PATH/TO/goldenpath/hg19/database/merged.exons.bed</refseqexons> <!-- for CNVnator -->
+			<snpeff>
+				<datadir>/PATH/TO/goldenpath/hg19/chromosome/snpEff/data/</datadir>
+				<dbname>hg19kg</dbname>
+			</snpeff>
+			<annotationfile>/PATH/TO/seq/analysis/single_analysis/standalone_annotation/knownGene.bed.gz</annotationfile>
+
+			<svannotation>
+				<tgenomessv>/PATH/TO/goldenpath/hg19/database/tgenomes_sv.bed.gz</tgenomessv>
+				<giab>/PATH/TO/goldenpath/hg19/database/genomeinabottleregions.bed.gz</giab>
+				<lowcompl>/PATH/TO/goldenpath/hg19/database/lowcomplexityregions.bed.gz</lowcompl>
+				<dgv>/PATH/TO/goldenpath/hg19/database/dgv.bed.gz</dgv>
+				<gap>/PATH/TO/goldenpath/hg19/database/gap.bed.gz</gap>
+				<gensupdup>/PATH/TO/goldenpath/hg19/database/genomicsuperdups.bed.gz</gensupdup>
+				<regulation>/PATH/TO/goldenpath/hg19/database/wgEncodeAwgSegmentationCombinedH1hesc.bed.gz</regulation>
+				<codingsequence>/PATH/TO/goldenpath/hg19/database/knownGene.bed.gz</codingsequence>
+				<codingexons>/PATH/TO/goldenpath/hg19/database/knownGene_codingexons.sorted.bed.gz</codingexons>
+				<dbsnp>/PATH/TO/goldenpath/hg19/database/snp142_sv.bed.gz</dbsnp>
+			</svannotation>
+
+			<variationdb>
+				<db>localhost</db>
+				<database>hg19</database>
+				<snvtable>snp142</snvtable>
+				<genetable>knownGeneSymbol</genetable>
+				<canonicaltable>knownCanonical</canonicaltable>
+				<cds>knownGene_cds</cds>
+				<refseqgene>refGene</refseqgene>
+				<refseqcds>refGene_cds</refseqcds>
+				<lincrna>lincRNAsTranscriptsSymbol</lincrna>
+				<lincrnacds>lincRNAsTranscripts_cds</lincrnacds>
+				<mirna>miRNA</mirna>
+				<mirnacds>miRNA_cds</mirnacds>
+				<tgenomessv>tgenomes_sv</tgenomessv>
+				<giab>genomeinabottleregions</giab>
+				<lowcompl>lowcomplexityregions</lowcompl>
+				<dgv>dgv</dgv>
+				<gap>gap</gap>
+				<gensupdup>genomicsuperdups</gensupdup>
+				<regulation>wgEncodeAwgSegmentationCombinedH1hesc</regulation>
+				<maxpeplength>knownGenePep</maxpeplength>
+				<tgenomestable>tgenomes</tgenomestable>
+				<caddtable>cadd</caddtable>
+				<exactable>evs</exactable>
+				<gnomadconstraints>evsscores</gnomadconstraints>
+				<kaviartable>kaviar</kaviartable>
+				<pphtable>pph3</pphtable>
+				<sifttable>sift</sifttable>
+			</variationdb>
+
+			<targets>
+				<SureSelect60Mbv6>
+					<bed>/PATH/TO/seq/tools/solexa/exome60MbV6/modified.targets.txt</bed>
+					<windows>50</windows>
+					<exomedepth>
+						<target>/PATH/TO/seq/tools/solexa/exome60MbV6/unique.ontarget.merged.coding_exons.bed</target>
+						<counts>/PATH/TO/ExomeDepthSureSelect60Mbv6/ExomeCount</counts>
+						<male>/PATH/TO/ExomeDepthSureSelect60Mbv6/ExomeCountMale</male>
+						<female>/PATH/TO/ExomeDepthSureSelect60Mbv6/ExomeCountFemale</female>
+						<maxrsd>2.50</maxrsd>
+					</exomedepth>
+				</SureSelect60Mbv6>
+				<genomic>
+					<bed>/PATH/TO/seq/tools/solexa/exome50MbV5/modified.targets.txt</bed>
+					<exomedepth>
+						<target>/PATH/TO/seq/tools/solexa/exome50MbV5/ontarget.merged.coding_exons.bed</target>
+						<counts>/PATH/TO/ExomeDepthGenome/ExomeCount</counts>
+						<maxrsd>2.50</maxrsd>
+					</exomedepth>
+				</genomic>
+			</targets>
+		</hg19_decoy>
+		
+		<hg19>
+			<inherits>hg19_decoy</inherits>
+			<refname>hg19</refname>
+			<reference>/PATH/TO/goldenpath/hg19/chromosome/hg19.fa</reference>
+			<refdate>20090201</refdate>			
+			<gatksnps>/PATH/TO/goldenpath/gatk_resource_bundle/sort.dbsnp_137.hg19.vcf</gatksnps>
+				<GoldStandardIndels>/PATH/TO/goldenpath/gatk_resource_bundle/sort.Mills_and_1000G_gold_standard.indels.hg19.vcf</GoldStandardIndels>
+			<HapMap>/PATH/TO/goldenpath/gatk_resource_bundle/sort.hapmap_3.3.hg19.vcf</HapMap>
+			<Omni1000G>/PATH/TO/goldenpath/gatk_resource_bundle/sort.1000G_omni2.5.hg19.vcf</Omni1000G>
+			<SNPs1000G>/PATH/TO/goldenpath/gatk_resource_bundle/sort.1000G_phase1.snps.high_confidence.hg19.vcf</SNPs1000G>
+			<miRNAregion></miRNAregion>
+			
+			<referenceperchrom>/PATH/TO/goldenpath/hg19/chromosome/single_chromosomes/</referenceperchrom><!-- for CNVnator -->
+			<rrnalist>/PATH/TO/goldenpath/hg19/chromosome/hg19.rrna.list</rrnalist>
+			<starindex>/PATH/TO/goldenpath/hg19/chromosome/star_ucsc_hg19_index/</starindex>
+			<bowtieindex>/PATH/TO/goldenpath/hg19/chromosome/bowtie_index/bowtie_hg19_index/bowtie_hg19</bowtieindex>
+			<bowtie2index>/PATH/TO/goldenpath/hg19/chromosome/bowtie_index/bowtie2_hg19_index/bowtie2_hg19</bowtie2index>
+		</hg19>
+		
+		
+	</references>
+	
+
+	<settings>
+		
+		
+		<hg19_test>
+			<ref>hg19</ref>		
+			<analysis>
+				<folder>/PATH/TO/seq/analysis/exomehg19</folder>
+				<runfolder>/PATH/TO/FLOWCELLS/</runfolder>
+			</analysis>
+			<exomedb>
+				<inherits>true</inherits>
+				<database>exomevcf</database>
+			</exomedb>
+			<rnadb>
+				<inherits>true</inherits>
+				<database>rnahg19</database>
+			</rnadb>
+		</hg19_test>
+		
+		
+		<hg19_plus>
+			<ref>hg19_decoy</ref>
+			<analysis>
+				<folder>/PATH/TO/seq/analysis/exomehg19plus</folder>
+				<multisample>/PATH/TO/seq/analysis/multisample/hg19_plus</multisample>
+			</analysis>
+			<exomedb>
+				<inherits>true</inherits>
+				<database>exomehg19plus</database>
+			</exomedb>
+		</hg19_plus>
+
+	</settings>
+</config>

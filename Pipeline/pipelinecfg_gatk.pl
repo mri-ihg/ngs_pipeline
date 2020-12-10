@@ -2028,13 +2028,22 @@ sub homozygosity {
 	print OUT "param : s : $sample\n";
 	print OUT "# settings\n";
 	print OUT "param : se : $settings\n";
-	print OUT "# outdir \n";
-	print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/\n";
+	if ($vcf == 1){
+		print OUT "# input file\n";
+		print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/ontarget.varfilter.dbSNP.plus.checked.vcf\n";
+	}elsif ($vcf == 2){
+		print OUT "# input file\n";
+		print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.dbSNP.plus.checked.vcf\n";
+	}
+	print OUT "# outfile \n";
+	print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/homozygosity.out\n";
+	print OUT "# insert into db \n";
+	print OUT "param : insert\n"; 
 	print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
 	print OUT "dependson : snvdbExomeInsert_vcf.pl\n";
 	&printSlot("homozygosity");
 
-	if ( $runs{homozygosity} == 1 && $vcf >= 1 )			#only for VCF version since homozygosity table is only in this DB
+	if ( $runs{homozygosity} == 1 )
 	{
 		print OUT "run\n";
 	}

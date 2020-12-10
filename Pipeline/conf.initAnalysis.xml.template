@@ -1,0 +1,106 @@
+<config>
+	<settings>
+		<!-- NOTE: if a combination of organism/ltlibtype/pipelineversion doesn't exit but is chosen, the pipeline will NOT be started for the sample -->
+		<human>
+			<exomic>
+				<vcf>hg19_test</vcf>
+				<gatk>hg19_plus</gatk>
+			</exomic>
+			<genomic>
+				<gatk>hg19_wholegenome</gatk>
+			</genomic>
+			<RNA>
+				<vcf>hg19_rna</vcf>
+			</RNA>
+		</human>
+	</settings>
+	<dirs>
+		<out>out</out>
+		<projectfolder>/PATH/TO/seq/analysis/exomehg19</projectfolder>
+	</dirs>
+	<runs>
+		<alignmentOnly>
+			<run>alignment:4-6</run>
+		</alignmentOnly>
+		
+		<standard>
+			<run>bam_merge</run>
+			<run>transcriptStats</run>
+			<run>stats</run>
+			<run>checkContamination</run>
+			<run>parsestats</run>
+			<run>statsdb</run>
+			<run>insertSizeIntoDB</run>
+		</standard>
+		<exome>
+			<run>varfilter</run>
+			<run>runPindel</run>
+			<run>filterPindel</run>
+			<run>annotatePindel</run>
+			<run>exomeDepth</run>
+			<run>annotateSNPs</run>
+			<run>checkPileup</run>
+			<run>transversion</run>
+			<run>snpEff</run>
+			<run>RefSeq</run>
+			<run>lncRNA</run>
+			<run>miRNA</run>
+			<run>callChrM</run>
+			<run>annotateChrM</run>
+		</exome>
+		
+		<exomedb>
+			<run>insertPindel</run>
+			<run>exomeDepthInsert</run>
+			<run>snvdbInsertExome</run>
+			<run>snpEffInsert</run>
+			<run>homozygosity</run>
+			<run>updateRefSeq</run>
+			<run>updatelncRNA</run>
+			<run>updatemiRNA</run>
+			<run>insertChrM</run>		
+		</exomedb>
+		
+		<genome>
+			<run>deepvariant</run>
+			<run>cnvnator</run>
+			<run>runBreakdancer</run>
+			<run>runLumpy</run>
+			<run>runManta:4-6</run>
+                        <run>runWhamg:4-6</run>
+			<disabled>runBellerophon</disabled>
+			<run>runIGVtools</run>
+			<run>mergeSV</run>
+		</genome>
+	
+		<genomedb>
+			<run>insertSV</run>
+			<disabled>insertBellerophon</disabled>
+			<run>genomerun</run>
+			<run>genomerun</run>
+		</genomedb>
+	
+		<rnaseq>
+			<run>htseqcount</run>
+			<run>calcFPKM</run>
+			<run>normalization</run>
+			<run>RNAdbInsert</run>
+			<run>calcRNAstats:4</run>
+			<run>RNAStatsDBInsert</run>
+		</rnaseq>
+		
+		<chipseq>
+			<run>runMacs</run>
+		</chipseq>
+		
+		<mtDNA>
+			<run>runPindel</run>
+			<run>filterPindel</run>
+			<run>annotatePindel</run>
+			<run>insertPindel</run>
+			<run>callChrM</run>
+			<run>annotateChrM</run>
+			<run>insertChrM</run>
+		</mtDNA>
+	</runs>
+</config>

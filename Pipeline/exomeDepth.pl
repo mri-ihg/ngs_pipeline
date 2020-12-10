@@ -88,7 +88,7 @@ if(-d $infile){
 #get BAM counts for further processing
 my $ref          = $params->{settings}->{$settings}->{reference};
 my $getBamCounts = $params->{programs}->{exomeDepth}->{getBamCounts};
-my $targetFile   = $params->{programs}->{exomeDepth}->{targets}->{$assay}->{target};
+my $targetFile   = $params->{settings}->{$settings}->{targets}->{$assay}->{exomedepth}->{target};
 my $bamOutfile   = "$outdir/exomeDepth.TestCount";
 my $command      = "R --no-restore --no-save --args $infile $targetFile $ref $bamOutfile <$prog_path/$getBamCounts > $outdir/exomeDepth.getBamCounts.log 2>&1";
 $logger->debug($command);
@@ -98,7 +98,7 @@ system($command);
 
 #calculate CNVs for autosomes
 my $cnv          = $params->{programs}->{exomeDepth}->{cnv};
-my $exomCounts   = $params->{programs}->{exomeDepth}->{targets}->{$assay}->{counts};
+my $exomCounts   = $params->{settings}->{$settings}->{targets}->{$assay}->{exomedepth}->{counts};
 $command		 = "R --no-restore --no-save --args $exomCounts $bamOutfile $outdir/exomeDepth. 0 <$prog_path/$cnv > $outdir/exomeDepth.cnv.log 2>&1";
 $logger->debug($command);
 $logger->info("Calculating CNVs for autosomes...");
@@ -138,8 +138,8 @@ system("$bedtools/intersectBed -a $outdir/exomeDepth.intersect.bed -b $dgv -wa -
 
 
 #calculate CNVs for chrX
-if($gender ne "" && $params->{programs}->{exomeDepth}->{targets}->{$assay}->{$gender}){
-	$command		 = "R --no-restore --no-save --args $params->{programs}->{exomeDepth}->{targets}->{$assay}->{$gender}  $bamOutfile $outdir/exomeDepth.chrX. 1 <$prog_path/$cnv > $outdir/exomeDepth.cnv.log 2>&1";
+if($gender ne "" && $params->{settings}->{$settings}->{targets}->{$assay}->{exomedepth}->{$gender}){
+	$command		 = "R --no-restore --no-save --args $params->{settings}->{$settings}->{targets}->{$assay}->{exomedepth}->{$gender}  $bamOutfile $outdir/exomeDepth.chrX. 1 <$prog_path/$cnv > $outdir/exomeDepth.cnv.log 2>&1";
 	$logger->debug($command);
 	$logger->info("Calculating CNVs for chrX...");
 	system($command);
@@ -399,12 +399,12 @@ sub BED2VCF {
 	my $table    = $params->{settings}->{$settings}->{variationdb}->{genetable};
 	
 	my $filter = "PASS";
-	if($params->{programs}->{exomeDepth}->{targets}->{$assay}->{maxrsd} && -e $outdir."/exomeDepth.stats"){
+	if($params->{settings}->{$settings}->{targets}->{$assay}->{exomedepth}->{maxrsd} && -e $outdir."/exomeDepth.stats"){
 		open EDSTATS, $outdir."/exomeDepth.stats" || exit $logger->error("Cannot open $outdir/exomeDepth.stats!");
 		my $line = <EDSTATS>;
 		$line    = <EDSTATS>;
 		my ($tmp1,$tmp2,$exomedepthmad, $meanRsd) = split(' ',$line);
-		$filter = "TooManyCNVs" if $meanRsd > $params->{programs}->{exomeDepth}->{targets}->{$assay}->{maxrsd};
+		$filter = "TooManyCNVs" if $meanRsd > $params->{settings}->{$settings}->{targets}->{$assay}->{exomedepth}->{maxrsd};
 	}
 	
 	open (IN, "$infile");
