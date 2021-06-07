@@ -247,11 +247,11 @@ if($doPPH || $doSIFT) { #insert Polyphen2 and/or SIFT scores
 					$columns[34] = "unknown";
 				}
 				my ($score,@tmp) = split(";",$columns[32]);
-				executeQuery("insert into $pphtable (chrom,start,ref,alt,hvar_prediction,hvar_prob) values ('$chr$columns[0]',$columns[1],'$columns[2]','$columns[3]','$columns[34]',$score)") if $score ne ".";
+				executeQuery("insert into $pphtable (chrom,start,ref,alt,hvar_prediction,hvar_prob) values ('$chr$columns[7]',$columns[8],'$columns[2]','$columns[3]','$columns[34]',$score)") if $score ne ".";
 			}
 			if($doSIFT){
 				my ($score,@tmp) = split(";",$columns[23]);
-				executeQuery("insert into $sifttable (chrom,start,ref,alt,score) values ('$chr$columns[0]',$columns[1],'$columns[2]','$columns[3]',$score)") if $score ne ".";
+				executeQuery("insert into $sifttable (chrom,start,ref,alt,score) values ('$chr$columns[7]',$columns[8],'$columns[2]','$columns[3]',$score)") if $score ne ".";
 			}
 			
 		}
