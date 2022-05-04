@@ -68,10 +68,10 @@ my $logger = Utilities::getLogger();
 
 
 # Check if another instance is running
-my $amIRunning=`ps aux | grep startSnvSampleImport.pl | grep -v grep | wc -l`;
+my $amIRunning=`ps aux | grep startSnvSampleImport.pl | grep -v grep | grep -v edit | wc -l`;
 if ( $amIRunning > 1 )
 {
-	$logger->error("Another startSnvSampleImport.pl instance is running");
+	$logger->error("Another startSnvSampleImport.pl instance is running.");
 	exit(1);	
 }
 
@@ -130,90 +130,136 @@ if ($doJob)
 else
 {
 	printf "\n";
-	printf "----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n";
-	printf "\| %-15s \| %-15s \| %-25s \| %-110s \|\n", "SampleName", "idPipeline", "Settings", "File";
-	printf "----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n";
+	printf "---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n";
+	printf "\| %-15s \| %-15s \| %-25s \| %-110s \| %-110s \|\n", "SampleName", "idPipeline", "Settings", "SNPs","SVs";
+	printf "---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n";
 }
+
+# Samples whose import failed
+my @failedsamples;
 
 # Process each pipeline
 while (my ($sampleID, $sampleName, $pipelineSettings, $importFile, $idpipeline) =  $getImportFiles_sth->fetchrow_array()) {
 	
 	$counter++;
 	
+	
+	# my $importFile; 
+	my $mergedSV = dirname( abs_path($importFile) )."/merged.sv.vcf";
+	my $mergedSVText = ( -e $mergedSV ? $mergedSV : "MISSING SVs"); 
+
 	if($doJob)
 	{
-		$logger->info("Processing sample $sampleName ... \t($counter / $numberOfSamples)");
-
-		#Not necessary - checks that the software is not running multiple times
-		#$updatePipeline_sth->execute(0,0,$idpipeline) || $logger->error($DBI::errstr);
+		# Check that files exist or don't waste time:
 		
-		#delete
-		$deleteSVNs_sth->execute($sampleID) || $logger->error($DBI::errstr);
+		my $missingfile = 0;
 		
-		# Importing tsv variant file	
-		my $failed=0;
-		$logger->info("Importing file $importFile into $exomedb.snvsample");
-		my $sql="LOAD DATA LOCAL INFILE '".$importFile."' INTO TABLE $exomedb.snvsample";
-		$logger->info("Executing statement: $sql");
-		$dbh->do($sql) or $failed=1;
-		$logger->info("Executing statement: $sql FINISHED");
+		if ( ! -f $importFile )
+		{
+			$logger->error("SNVs not found for sample $sampleName at $importFile");
+			$missingfile++;
+		}
 		
-		if ($failed) {
-
-			# FAILURE: 
-			$logger->error("Import of $importFile FAILED! Continuing with the next file (if present) ...");
-
-		} else {
-
-			# SUCCESS: 
+		if ( ! -f $mergedSV )
+		{	
+			$logger->error("SVs not found for sample $sampleName at $mergedSV");
+			$missingfile++;
+		}
+		
+		if ( $missingfile  ){
+			push( @failedsamples, $sampleName);
+		}
+		else
+		{	
+		
+			$logger->info("Processing sample $sampleName ... \t($counter / $numberOfSamples)");
+	
+			#Not necessary - checks that the software is not running multiple times
+			#$updatePipeline_sth->execute(0,0,$idpipeline) || $logger->error($DBI::errstr);
 			
-			# Reset current and past pipelines for the sample 
-			$updatePipeline_sth->execute(1,1,$sampleID, $pipelineSettings) || $logger->error($DBI::errstr);
+			#delete
+			$deleteSVNs_sth->execute($sampleID) || $logger->error($DBI::errstr);
 			
-			$logger->info("Import of $importFile OK");
+			# Importing tsv variant file	
+			my $failed=0;
+			$logger->info("Importing file $importFile into $exomedb.snvsample");
+			my $sql="LOAD DATA LOCAL INFILE '".$importFile."' INTO TABLE $exomedb.snvsample";
+			$logger->info("Executing statement: $sql");
+			$dbh->do($sql) or $failed=1;
 			
-			#Calculate variantstat
-			my $command = $prog_path . "/updateVariantStat.pl -s $sampleName -se $pipelineSettings -pipe $idpipeline -lf $logfile -ll $loglevel";
-			if (&Utilities::executeCommand($command, "Updating variantstat for $sampleName", $logger)) {
-				$logger->error("Updating variantstat for $sampleName FAILED! Continuing with the next sample...")
+			if ($failed) {
+	
+				# FAILURE: 
+				$logger->error("Import of $importFile FAILED! Continuing with the next file, if present...");
+				push( @failedsamples, $sampleName); 
+	
 			} else {
-				$logger->info("Updating variantstat for $sampleName OK");
-			}
-			
-			
-			# Import SV
-			my $mergedSV = dirname( abs_path($importFile) )."/merged.sv.vcf";
-			if ( -f $mergedSV )
-			{
-				my $command = $prog_path . "/insertSV.pl -i $mergedSV -s $sampleName -se $pipelineSettings -d -lf $logfile -ll $loglevel";
-				if (&Utilities::executeCommand($command, "Inserting SVs for $sampleName", $logger)) {
-					$logger->error("SVs import for sample $sampleName at $mergedSV FAILED! Continuing with the next sample...");
+	
+				# SUCCESS: 
+				$logger->info("Executing statement: $sql FINISHED");
+				$logger->info("Import of $importFile OK");
+				
+				#Calculate variantstat
+				my $command = $prog_path . "/updateVariantStat.pl -s $sampleName -se $pipelineSettings -pipe $idpipeline -lf $logfile -ll $loglevel";
+				if (&Utilities::executeCommand($command, "Updating variantstat for $sampleName", $logger)) {
+					$logger->error("Updating variantstat for $sampleName FAILED! Continuing with the next sample...");
+					push( @failedsamples, $sampleName);
 				} else {
-					$logger->info("SVs import for sample $sampleName at $mergedSV OK");
+					$logger->info("Updating variantstat for $sampleName OK");
+				
+							
+					# Import SV
+					if ( -f $mergedSV )
+					{
+						my $command = $prog_path . "/insertSV.pl -i $mergedSV -s $sampleName -se $pipelineSettings -d -lf $logfile -ll $loglevel";
+						if (&Utilities::executeCommand($command, "Inserting SVs for $sampleName", $logger)) {
+							$logger->error("SVs import for sample $sampleName at $mergedSV FAILED! Continuing with the next sample...");
+							push( @failedsamples, $sampleName);
+						} else {
+						
+							$logger->info("SVs import for sample $sampleName at $mergedSV OK");	
+							
+							# Only if SNV and SV import successful:
+							# Reset current and past pipelines for the sample 
+							$updatePipeline_sth->execute(1,1,$sampleID, $pipelineSettings) || $logger->error($DBI::errstr);
+							
+						}
+					}
+					else
+					{
+						$logger->error("SVs not found for sample $sampleName at $mergedSV");
+						push( @failedsamples, $sampleName);
+					}
 				}
-			}
-			else
-			{
-				$logger->error("SVs not found for sample $sampleName at $mergedSV");
 			}
 		}
 	}
 	else
 	{
-		# Or show just the sample to be processed
-		printf "\| %-15s \| %15s \| %-25s \| %-110s \|\n", $sampleName, $idpipeline, $pipelineSettings, $importFile;
+		# Or show just the sample(s) to be processed
+		printf "\| %-15s \| %15s \| %-25s \| %-110s \| %-110s \|\n", $sampleName, $idpipeline, $pipelineSettings, $importFile, $mergedSVText;
 	}
 }
 
 #Import/display finished
 if($doJob)
 {
-	$logger->info("Import finished")
+	$logger->info("Import finished");
+	
+	
+	if ( ( scalar @failedsamples ) > 0 )
+	{
+		print "\nThere are ".(scalar @failedsamples)." failed samples:\n";	
+		foreach my $failedsample (@failedsamples)
+		{
+			printf $failedsample."\n"; 
+		}
+	}
 }
 else
 {
-	printf "\| %-174s \|\n", "No samples to be inserted!" if $counter == 0;
-	printf "----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n";
+	printf "\| %-287s \|\n", "No samples to be inserted!" if $counter == 0;
+	printf "---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n";
 	printf "\n"
 }
 
@@ -234,6 +280,7 @@ SVs are also imported.
 =head1 OPTIONS
 
  -se	settings; default: hg19_wholegenome
+ -sample sample name to import
  -do	start insert; (default: no); if -do is not set, only samples that would be inserted are listed
  -limit max samples to process: default NO LIMIT
  -lf	log file; default: print to screen

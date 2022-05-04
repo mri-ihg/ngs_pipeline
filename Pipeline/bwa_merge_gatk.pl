@@ -156,7 +156,7 @@ if($run)
 			
 			if(system("$samtools merge -h $outdir/header.sam $outdir/merged.bam $infiles") == 0 && $removeInfiles){		#remove infiles if chosen and merge was successful
 			#if($removeInfiles){
-				$logger->info("Remvoing input files...");
+				$logger->info("Removing input files...");
 				foreach(@infiles){
 					unlink($_);
 				}
@@ -231,7 +231,14 @@ if($run)
 	{
 		# Recal
 		my $recalcommand = "perl $prog_path/recalBam.pl -i $outdir/merged.rmdup.bam -o $outdir/merged.rmdup.bam -m 24g -se $settings -gatk4 -indels_context_size 8 -mismatches_context_size 4 -lf $logfile -ll $loglevel";
-		system( $recalcommand );
+		#system( $recalcommand );
+		
+		if (&Utilities::executeCommand($recalcommand, "Launching recalibration", $logger)) {
+			$logger->error("Error executing recalibration");
+			exit(100);
+		}
+		
+		
 		
 		# Index recalibrated file
 		system ( "$samtools index $outdir/merged.rmdup.bam" ); # if ( ! -e "$outdir/merged.rmdup.bam.bai" ); 

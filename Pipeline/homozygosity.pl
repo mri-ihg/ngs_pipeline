@@ -145,7 +145,7 @@ $logger->debug($command);
 #{
 	if (&Utilities::executeCommand($command, "Calculating stretches of homozygosity for $sample", $logger)) {
 			$logger->error("Calculating stretches of homozygosity for $sample failed");
-			exit(-1);
+			exit(100);
 	}else{
 			$logger->debug("Calculating stretches of homozygosity for $sample OK");
 	}

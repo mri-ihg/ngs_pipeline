@@ -135,8 +135,9 @@ if($bam){
 	#The filter + sort must be done for external imported files 	
 	if ( $isExternalBam )
 	{
+		my $tmporiginalbamsort=$outprefix."_tmporiginalbamsort";
 		# Aligned bam must be filtered for secondary alignment and sorted by read name 
-		$bedCommand = "$samtools view -b -h -F 0x900 $infile1 | $samtools sort -n -o - tmporiginalbamsort | $bedtools/bedtools bamtofastq -i - "; # -fq r1.fastq -fq2 r2.fastq "
+		$bedCommand = "$samtools view -b -h -F 0x900 $infile1 | $samtools sort -n -o - $tmporiginalbamsort | $bedtools/bedtools bamtofastq -i - "; # -fq r1.fastq -fq2 r2.fastq "
 	}
 	else
 	{

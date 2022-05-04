@@ -245,7 +245,7 @@ sub init {
 	my $flowcell = shift;
 
 	#if ( $flowcell =~ m/^\d+$/ || $flowcell =~ m/^.\d+$/ )
-	unless ( ($flowcell =~ m/XX$/ && ( length $flowcell ) == 9) || $isFlowcell || ($flowcell =~ m/XY$/ && ( length $flowcell ) == 9) || ( $flowcell =~ m/000000000\-/ && ( length $flowcell ) == 15)  )
+	unless ( ($flowcell =~ m/XX$/ && ( length $flowcell ) == 9) || $isFlowcell || ($flowcell =~ m/XY$/ && ( length $flowcell ) == 9) || ($flowcell =~ m/X2$/ && ( length $flowcell ) == 9) || ($flowcell =~ m/X3$/ && ( length $flowcell ) == 9) || ( $flowcell =~ m/000000000\-/ && ( length $flowcell ) == 15)  )
 	{   
 		
 		my $query = "select count(ltid) from libtype where ltlibtype='$libtype';";		#check if given libtype is OK

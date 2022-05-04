@@ -207,6 +207,8 @@ $logger->info("LIBPAIR: $libpair");
 $logger->info("=========================");
 
 
+exit; # Disable custom email
+
 ########################################
 ### Send Mail for important projects ###
 ########################################

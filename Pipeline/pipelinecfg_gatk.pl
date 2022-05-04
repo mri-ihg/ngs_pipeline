@@ -1971,7 +1971,7 @@ if ( $vcf > 0 ) {
 	print OUT "# settings\n";
 	print OUT "param : se : $settings\n";
 	print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
-	print OUT "dependson : snvdbExomeInsert_vcf.pl,filterVCFforRegion.pl\n";
+	print OUT "dependson : snvdbExomeInsert_vcf.pl,snvdbExomeImport_vcf.pl,filterVCFforRegion.pl\n";
 	&printSlot("snpEff");
 
 	if ( $runs{snpEff} == 1 ) # 13.02.2014: now also for mice; && $organism eq "human" ) #currently only run for humans --> other species don't have the refSeq tables (yet)
@@ -2040,7 +2040,7 @@ sub homozygosity {
 	print OUT "# insert into db \n";
 	print OUT "param : insert\n"; 
 	print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
-	print OUT "dependson : snvdbExomeInsert_vcf.pl\n";
+	print OUT "dependson : snvdbExomeInsert_vcf.pl,snvdbExomeImport_vcf.pl\n";
 	&printSlot("homozygosity");
 
 	if ( $runs{homozygosity} == 1 )
@@ -2132,7 +2132,7 @@ sub updateRefSeq {
 			print OUT "# settings\n";
 			print OUT "param : se : $settings\n";
 			print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
-			print OUT "dependson : annotateVCF.pl,snvdbExomeInsert_vcf.p\n";
+			print OUT "dependson : annotateVCF.pl,snvdbExomeInsert_vcf.pl,snvdbExomeImport_vcf.pl\n";
 			&printSlot("varfilter");
 		
 			if ( $runs{RefSeq} == 1 ) {
@@ -2163,7 +2163,7 @@ sub updateRefSeq {
 	print OUT "# settings\n";
 	print OUT "param : se : $settings\n";
 	print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
-	print OUT "dependson : annotateVCF.pl,snvdbExomeInsert_vcf.pl\n";
+	print OUT "dependson : annotateVCF.pl,snvdbExomeInsert_vcf.pl,snvdbExomeImport_vcf.pl\n";
 	&printSlot("updateRefSeq");
 
 	if ( $runs{updateRefSeq} == 1 && $organism eq "human" )
@@ -2246,7 +2246,7 @@ sub updatelncRNA {
 			print OUT "# settings\n";
 			print OUT "param : se : $settings\n";
 			print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
-			print OUT "dependson : annotateVCF.pl,snvdbExomeInsert_vcf.p\n";
+			print OUT "dependson : annotateVCF.pl,snvdbExomeInsert_vcf.pl,snvdbExomeImport_vcf.pl\n";
 			&printSlot("varfilter");
 			
 			if ( $runs{lncRNA} == 1 ) {
@@ -2284,7 +2284,7 @@ sub updatelncRNA {
 		print OUT "# settings\n";
 		print OUT "param : se : $settings\n";
 		print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
-		print OUT "dependson : annotateVCF.pl,snvdbExomeInsert_vcf.pl,filterVCFforRegion.pl\n";
+		print OUT "dependson : annotateVCF.pl,snvdbExomeInsert_vcf.pl,snvdbExomeImport_vcf.pl,filterVCFforRegion.pl\n";
 		&printSlot("updatelncRNA");
 
 		if ( $runs{updatelncRNA} == 1 && $organism eq "human" )
@@ -2366,7 +2366,7 @@ sub updatemiRNA {
 			print OUT "# settings\n";
 			print OUT "param : se : $settings\n";
 			print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
-			print OUT "dependson : annotateVCF.pl,snvdbExomeInsert_vcf.p\n";
+			print OUT "dependson : annotateVCF.pl,snvdbExomeInsert_vcf.pl,snvdbExomeImport_vcf.pl\n";
 			&printSlot("varfilter");
 			
 			if ( $runs{miRNA} == 1 && $organism eq "human" ) {
@@ -2404,7 +2404,7 @@ sub updatemiRNA {
 		print OUT "# settings\n";
 		print OUT "param : se : $settings\n";
 		print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
-		print OUT "dependson : annotateVCF.pl,snvdbExomeInsert_vcf.pl,filterVCFforRegion.pl\n";
+		print OUT "dependson : annotateVCF.pl,snvdbExomeInsert_vcf.pl,snvdbExomeImport_vcf.pl,filterVCFforRegion.pl\n";
 		&printSlot("updatemiRNA");
 
 		if ( $runs{updatemiRNA} == 1 && $organism eq "human" )
@@ -3454,7 +3454,7 @@ sub transversion {
 	print OUT "# settings\n";
 	print OUT "param : se : $settings\n";
 	print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
-	print OUT "dependson : statsdb.pl,snvdbExomeInsert_vcf.pl\n";
+	print OUT "dependson : statsdb.pl,snvdbExomeInsert_vcf.pl,snvdbExomeImport_vcf.pl\n";
 	&printSlot("transversion");
 	if ( $runs{transversion} == 1 ) {
 		print OUT "run\n";

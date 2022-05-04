@@ -282,11 +282,13 @@ $logger->info("Launching ".( $usebamUtil ? "bamUtil recab" : "GATK PrintReads").
 # If batch already exists do not create it, but issue WARNING
 if (&Utilities::executeCommand($command, "Launching ".( $usebamUtil ? "bamUtil recab" : "GATK PrintReads")." (to recalibrate BQSR) on $input_bam to $output_bam", $logger)) {
 	$logger->error("Error executing ".( $usebamUtil ? "bamUtil recab" : "GATK PrintReads")." (to recalibrate BQSR) on $input_bam to $output_bam");
-	exit(-1);
+	exit(100);
 }
 else
 {
 	$logger->info("Recalibration done");
+	# TODO:
+	# UNLINK ORIGINAL BAM
 }
 
 #TODO: quant qual
