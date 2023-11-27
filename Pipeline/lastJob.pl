@@ -125,7 +125,10 @@ if($idpipeline != -1){
 	my ($outputDirectory, $starttime) = $out->fetchrow_array();
 	$outDir = $outputDirectory;
 	
-	if ($settings eq "hg19_wholegenome") {
+	
+	# TODO: IMPORTANT: DO NOT HARDCODE HERE -> CODE IT IN SETTINGS -> ASYNCHRONOUS IMPORT -> SOMETHING LIKE:
+	# if ( $params->{settings}->{$settings}->{exomedb}->{asyncimport} == "true"  )
+	if ($settings eq "hg19_wholegenome" || $settings eq "hg19_genomedeepvariant") {
 				
 		#Merge snvsample.$sample.* files
 		opendir(DIR, $outputDirectory);
@@ -141,6 +144,18 @@ if($idpipeline != -1){
 		while(my $f = readdir(DIR)) {
 			if ($f =~ m/^snvsample\.$sample/) {	#The $sample is here in the regex to avoid merging snvsample.merged.tsv to itself
 				$counter++;
+				
+				# TODO: HARDCODING AGAIN - REMOVE
+				if ( $settings eq "hg19_genomedeepvariant" && $f eq "snvsample.$sample.gatk.ontarget.haplotypecaller.filtered.dbSNP.plus.checked.vcf.tsv"){
+					$counter--;
+					next;
+				}
+				# TODO: HARDCODING AGAIN - REMOVE
+				if ( $settings eq "hg19_wholegenome" && $f eq "snvsample.$sample.deepvariant.dbSNP.plus.checked.vcf.tsv"){
+					$counter--;
+					next;
+				}
+				
 				if ($counter<=1) {
 					$command = "cat $outputDirectory/$f > $outputDirectory/$snvsampleImportFile";
 				} else {
@@ -168,7 +183,7 @@ if($idpipeline != -1){
 			#TODO: INVALIDATE PREVIOUS IMPORT INSTANCES FOR THE SAME SAMPLE WITH THE SAME SETTINGS
 		}
 	} elsif ($exomedb) {
-		$varquery = ",numofvars=(SELECT count(DISTINCT x.idsnvsample) FROM $exomedb.$snvsampleTable x WHERE p.idsample=x.idsample and (caller='samtools' or caller='gatk') )
+		$varquery = ",numofvars=(SELECT count(DISTINCT x.idsnvsample) FROM $exomedb.$snvsampleTable x WHERE p.idsample=x.idsample and (caller='samtools' or caller='gatk' or caller='deepvariant' ) )
 		,numofsvs=(SELECT count(DISTINCT x.idsnvsample) FROM $exomedb.$snvsampleTable x WHERE p.idsample=x.idsample and (caller='pindel') )
 		,numofcnvs=(SELECT count(DISTINCT x.idsnvsample) FROM $exomedb.$snvsampleTable x WHERE p.idsample=x.idsample and (caller='exomedepth') )
 	 	";

@@ -24,6 +24,7 @@ my $loglevel      = "INFO";
 
 my $settings  	  = "hg19_wholegenome";
 my $doJob     	  = 0;
+my $snvOnly       = 0;
 my $processLimit  = 9999;
 my $help          = 0;
 my $man           = 0;
@@ -40,6 +41,7 @@ my $oneSampleImport   = "";
 GetOptions(
 	"se=s"      => \$settings,
 	"do"        => \$doJob,
+	"snvonly"   => \$snvOnly,
 	"limit=s"   => \$processLimit,
 	"lf=s"      => \$logfile,
 	"ll=s"      => \$loglevel,
@@ -99,6 +101,7 @@ my $getImportFiles_sql = qq{
 			endtime<>0 and
 			S.idproject $DZHKomicsSQL (  select idproject from $coredb.project where pdescription="DZHKomics" ) and
 			S.idproject $DZHKomicsSQL (  select idproject from $coredb.project where pdescription="DZHK_Omics_Plus" ) and  
+			S.idproject NOT IN (  select idproject from $coredb.project where pdescription="Controls" ) and
 			P.idpipeline in ( select max(idpipeline) from $coredb.pipeline group by idsample,currentsettings ) 
 		order by P.idpipeline desc 
 		limit $processLimit 
@@ -182,8 +185,8 @@ while (my ($sampleID, $sampleName, $pipelineSettings, $importFile, $idpipeline) 
 			
 			# Importing tsv variant file	
 			my $failed=0;
-			$logger->info("Importing file $importFile into $exomedb.snvsample");
-			my $sql="LOAD DATA LOCAL INFILE '".$importFile."' INTO TABLE $exomedb.snvsample";
+			$logger->info("Importing file $importFile into $exomedb.$snvsampleTable");
+			my $sql="LOAD DATA LOCAL INFILE '".$importFile."' INTO TABLE $exomedb.$snvsampleTable";
 			$logger->info("Executing statement: $sql");
 			$dbh->do($sql) or $failed=1;
 			
@@ -211,6 +214,8 @@ while (my ($sampleID, $sampleName, $pipelineSettings, $importFile, $idpipeline) 
 					# Import SV
 					if ( -f $mergedSV )
 					{
+					     if ( ! $snvOnly )
+					     {
 						my $command = $prog_path . "/insertSV.pl -i $mergedSV -s $sampleName -se $pipelineSettings -d -lf $logfile -ll $loglevel";
 						if (&Utilities::executeCommand($command, "Inserting SVs for $sampleName", $logger)) {
 							$logger->error("SVs import for sample $sampleName at $mergedSV FAILED! Continuing with the next sample...");
@@ -224,6 +229,12 @@ while (my ($sampleID, $sampleName, $pipelineSettings, $importFile, $idpipeline) 
 							$updatePipeline_sth->execute(1,1,$sampleID, $pipelineSettings) || $logger->error($DBI::errstr);
 							
 						}
+					     }
+					     else
+					     {
+					     	$logger->info("Skipping SVs");
+						$updatePipeline_sth->execute(1,1,$sampleID, $pipelineSettings) || $logger->error($DBI::errstr);
+					     }
 					}
 					else
 					{

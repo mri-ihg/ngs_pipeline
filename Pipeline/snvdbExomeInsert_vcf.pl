@@ -273,7 +273,7 @@ sub insertSnv {
 
 	#parse some of the INFO fields
 	my $refScore = $vcfline->{INFO}->{FQ};
-	$refScore = $vcfline->{INFO}->{QD} if $caller eq "gatk";
+	$refScore = $vcfline->{INFO}->{QD} if ($caller eq "gatk" || $caller eq "deepvariant" );
 	$refScore = 999 if ( $caller eq "pindel" || $caller eq "exomedepth" );
 	$refScore = 0 unless $refScore;
 	if ( $refScore < 0 ) {
@@ -302,7 +302,7 @@ sub insertSnv {
 	}
 	$strandPercent = $vcfline->{INFO}->{SF}
 	  if $vcfline->{INFO}->{SF}
-	  && $caller eq "gatk"
+	  && ( $caller eq "gatk" || $caller eq "deepvariant" )
 	  ; #TODO SF value is calculated by filterSNPqual.pl --> maybe use this one for samtools as well???
 	$strandPercent *= 100;
 	$strandPercent = $vcfline->{INFO}->{RATIO} if $caller eq "exomedepth";
@@ -748,7 +748,7 @@ qq{insert into $exomedb.$additionalannotationtable (idsnv,annotationname,idannot
 			$dp = $strandPercent * 100 if $caller eq "exomedepth";
 			$alleles = 2 if $caller eq "exomedepth" && $strandPercent <= 0.1;
 
-			if ( $caller eq "gatk" || $caller eq "pindel" ) {
+			if ( $caller eq "gatk" || $caller eq "deepvariant" || $caller eq "pindel" ) {
 				$varPercent = 0;
 
 				if ( $vcfline->{gtypes}->{$sample}->{AD} )
@@ -792,19 +792,19 @@ sub updateVariantStat {
 	if($variantStatTable){
 		my $sql = qq{insert into $variantStatTable (idsample,snv,indel,pindel,exomedepth,snvgtqual, snvdepth)
 select $idsample, 
-(select count(idsnvsample) from snvsample ss inner join snv v on v.idsnv=ss.idsnv where ss.idsample=$idsample and (caller='gatk' or caller='samtools') and v.class='snp' ) as snvs,
-(select count(idsnvsample) from snvsample ss inner join snv v on v.idsnv=ss.idsnv where ss.idsample=$idsample and (caller='gatk' or caller='samtools') and v.class='indel' ) as indels,
-(select count(idsnvsample) from snvsample ss where ss.idsample=$idsample and caller='pindel') as pindel,
-(select count(idsnvsample) from snvsample ss where ss.idsample=$idsample and caller='exomedepth') as exomedepth,
-(select avg(gtqual)        from snvsample ss inner join snv v on v.idsnv=ss.idsnv where ss.idsample=$idsample and (caller='gatk' or caller='samtools') and v.class='snp' ) as snvgtqual,
-(select avg(coverage)      from snvsample ss inner join snv v on v.idsnv=ss.idsnv where ss.idsample=$idsample and (caller='gatk' or caller='samtools') and v.class='snp' ) as snvdepth
+(select count(idsnvsample) from $snvsampleTable ss inner join snv v on v.idsnv=ss.idsnv where ss.idsample=$idsample and (caller='gatk' or caller='samtools' or caller='deepvariant') and v.class='snp' ) as snvs,
+(select count(idsnvsample) from $snvsampleTable ss inner join snv v on v.idsnv=ss.idsnv where ss.idsample=$idsample and (caller='gatk' or caller='samtools' or caller='deepvariant') and v.class='indel' ) as indels,
+(select count(idsnvsample) from $snvsampleTable ss where ss.idsample=$idsample and caller='pindel') as pindel,
+(select count(idsnvsample) from $snvsampleTable ss where ss.idsample=$idsample and caller='exomedepth') as exomedepth,
+(select avg(gtqual)        from $snvsampleTable ss inner join snv v on v.idsnv=ss.idsnv where ss.idsample=$idsample and (caller='gatk' or caller='samtools' or caller='deepvariant') and v.class='snp' ) as snvgtqual,
+(select avg(coverage)      from $snvsampleTable ss inner join snv v on v.idsnv=ss.idsnv where ss.idsample=$idsample and (caller='gatk' or caller='samtools' or caller='deepvariant') and v.class='snp' ) as snvdepth
 		ON DUPLICATE KEY UPDATE
-snv=(select count(idsnvsample) from snvsample ss inner join snv v on v.idsnv=ss.idsnv where ss.idsample=$idsample and (caller='gatk' or caller='samtools') and v.class='snp' ),
-indel=(select count(idsnvsample) from snvsample ss inner join snv v on v.idsnv=ss.idsnv where ss.idsample=$idsample and (caller='gatk' or caller='samtools') and v.class='indel' ),
-pindel=(select count(idsnvsample) from snvsample ss where ss.idsample=$idsample and caller='pindel'),
-exomedepth=(select count(idsnvsample) from snvsample ss where ss.idsample=$idsample and caller='exomedepth'),
-snvgtqual=(select avg(gtqual)        from snvsample ss inner join snv v on v.idsnv=ss.idsnv where ss.idsample=$idsample and (caller='gatk' or caller='samtools') and v.class='snp' ),
-snvdepth=(select avg(coverage)       from snvsample ss inner join snv v on v.idsnv=ss.idsnv where ss.idsample=$idsample and (caller='gatk' or caller='samtools') and v.class='snp' )		
+snv=(select count(idsnvsample) from $snvsampleTable ss inner join snv v on v.idsnv=ss.idsnv where ss.idsample=$idsample and (caller='gatk' or caller='samtools' or caller='deepvariant') and v.class='snp' ),
+indel=(select count(idsnvsample) from $snvsampleTable ss inner join snv v on v.idsnv=ss.idsnv where ss.idsample=$idsample and (caller='gatk' or caller='samtools' or caller='deepvariant') and v.class='indel' ),
+pindel=(select count(idsnvsample) from $snvsampleTable ss where ss.idsample=$idsample and caller='pindel'),
+exomedepth=(select count(idsnvsample) from $snvsampleTable ss where ss.idsample=$idsample and caller='exomedepth'),
+snvgtqual=(select avg(gtqual)        from $snvsampleTable ss inner join snv v on v.idsnv=ss.idsnv where ss.idsample=$idsample and (caller='gatk' or caller='samtools' or caller='deepvariant') and v.class='snp' ),
+snvdepth=(select avg(coverage)       from $snvsampleTable ss inner join snv v on v.idsnv=ss.idsnv where ss.idsample=$idsample and (caller='gatk' or caller='samtools' or caller='deepvariant') and v.class='snp' )		
 		};
 		$logger->debug($sql);
 
@@ -844,6 +844,7 @@ file must have been annotated with the script annotateVCF.pl.
 
 =head1 AUTHOR
 
+Riccardo Berutti
 Thomas Wieland
 
 =cut

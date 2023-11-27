@@ -973,6 +973,7 @@ sub getMinimalIndel {
 ############################################################
 #getVCF: get a VCF file from a list of idsnvs and idsamples
 ############################################################
+# TODO: SNVSAMPLETABLE -> ARGUMENT
 sub getVCF {
 	my $dbh      = shift;
 	my $sampledb = shift;

@@ -317,7 +317,7 @@ sub insertSnv {
 
 	#parse some of the INFO fields
 	my $refScore = $vcfline->{INFO}->{FQ};
-	$refScore = $vcfline->{INFO}->{QD} if $caller eq "gatk";
+	$refScore = $vcfline->{INFO}->{QD} if ( $caller eq "gatk" || $caller eq "deepvariant") ;
 	$refScore = 999 if ( $caller eq "pindel" || $caller eq "exomedepth" );
 	$refScore = 0 unless $refScore;
 	if ( $refScore < 0 ) {
@@ -339,7 +339,7 @@ sub insertSnv {
 			$strandPercent = $sf / ( $sf + $sb );
 		}
 	}
-	$strandPercent = $vcfline->{INFO}->{SF}	  if $vcfline->{INFO}->{SF} && $caller eq "gatk"; #TODO SF value is calculated by filterSNPqual.pl --> maybe use this one for samtools as well???
+	$strandPercent = $vcfline->{INFO}->{SF}	  if $vcfline->{INFO}->{SF} && ( $caller eq "gatk" || $caller eq "deepvariant") ; #TODO SF value is calculated by filterSNPqual.pl --> maybe use this one for samtools as well???
 	$strandPercent *= 100;
 	$strandPercent = $vcfline->{INFO}->{RATIO} if $caller eq "exomedepth";
 
@@ -644,7 +644,7 @@ sub insertSnv {
 			$dp = $strandPercent * 100 if $caller eq "exomedepth";
 			$alleles = 2 if $caller eq "exomedepth" && $strandPercent <= 0.1;
 
-			if ( $caller eq "gatk" || $caller eq "pindel" ) {
+			if ( $caller eq "gatk" || $caller eq "deepvariant" || $caller eq "pindel" ) {
 				$varPercent = 0;
 
 				if ( $vcfline->{gtypes}->{$sample}->{AD} ) { #TW 11.09.2013: may be not there for some variants. don't know why

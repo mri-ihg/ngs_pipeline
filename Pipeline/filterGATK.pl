@@ -293,7 +293,9 @@ my $command="";
 			if (&Utilities::executeCommand($command, "Running VariantRecalibrator for INDELs...", $logger)) {
 				$logger->error("Error executing VariantRecalibrator for INDELs");
 				#Exit 
-				exit(-1);
+				#exit(-1);
+				# Don't crash - show must go on!
+				$indelFilter=1; 
 			}
 		}	
 			

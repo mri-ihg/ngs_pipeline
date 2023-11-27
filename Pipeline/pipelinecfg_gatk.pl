@@ -1,16 +1,17 @@
 #!/usr/bin/perl
 
 ##############################################################
-# Tim M Strom May 2010
+# pipelinecfg_gatk.pl
+#
 # generates a config file for pipeline.pl
+# defines the scripts that will be run
+#
+# Tim M Strom May 2010
 # Sebastian Eck May 2010
-# added subroutines:
-# -exome stats (locateReads_capture, calcBaseCov & parseStats)
-# -annotateIndelpe
-# -filterSNP
-# -checkPileup
-# -depth (add uncovered bases to pileup)
-# -del_hom (homozygote deletions)
+# Thomas Wieland 2015
+# Riccardo Berutti 2015-2023
+# Erik Tilch 2022-2023
+# 
 ##############################################################
 
 use strict;
@@ -48,6 +49,7 @@ my $slot       = "";
 my $line       = "";
 my $settings   = "";
 my $organism   = "";
+my $sex        = "";
 my $aligner    = "";
 my %runs       = ();
 my $params     = Utilities::getParams();
@@ -55,6 +57,9 @@ my $assay      = "";
 my $targetBED  = "";
 my $maxInssize = -1;
 my $vcf        = 0;
+my $variantcaller = "";
+my $vcfbasename ="";
+my $chrmvcfbasename="";
 my @removes;
 my @libraries       = ();
 my @infiletype      = ();    #possible types: ILLUMINA, FASTQ, BAM
@@ -151,6 +156,9 @@ while (<IN>) {
 	elsif ( $type eq "organism" ) {
 		$organism = $item1;
 	}
+	elsif ( $type eq "sex" ) {
+		$sex = $item1;
+	}
 	elsif ( $type eq "run" ) {
 		
 		$runs{$item1} = 1;
@@ -169,9 +177,22 @@ while (<IN>) {
 	elsif ( $type eq "version" ) {
 		if ( lc $item1 eq "vcf" ) {
 			$vcf = 1;
+			$variantcaller = "samtools";
+			$vcfbasename = "ontarget.varfilter";
+			$chrmvcfbasename = ""; #No MT
 		}
 		elsif ( lc $item1 eq "gatk" ) {
 			$vcf = 2;
+			$variantcaller = "gatk";
+			$vcfbasename = "gatk.ontarget.haplotypecaller.filtered";
+			$chrmvcfbasename ="gatk.chrM.haplotypecaller";
+		}
+		elsif ( lc $item1 eq "deepvariant" ) {
+			$vcf = 3;
+			$variantcaller = "deepvariant";
+			$vcfbasename = "deepvariant";
+			$chrmvcfbasename ="gatk.chrM.haplotypecaller";
+			
 		}
 	}
 	elsif ( $type eq "library" ) {
@@ -315,7 +336,7 @@ print OUT "libpair  : $libpair\n\n";
 &runManta;
 &runWhamg;
 &insertSV;
-
+&expansionHunter;
 &bellerophon;
 &IGVtools;
 
@@ -989,17 +1010,23 @@ sub varfilter {
 		
 		}
 	
-		print OUT "# settings\n";
-		print OUT "param : se : $settings\n";
-		print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
-		print OUT "dependson : bwa_merge_gatk.pl,gem_aln.pl,gem_merge.pl,gem_single_sort.pl\n";
-	
-		if ( $runs{varfilter} == 1 ) {
-			print OUT "run\n";
+		# Finishes above section | no for deepvariant
+		if ( $vcf == 1 || $vcf == 2 )
+		{
+			print OUT "# settings\n";
+			print OUT "param : se : $settings\n";
+			print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
+			print OUT "dependson : bwa_merge_gatk.pl,gem_aln.pl,gem_merge.pl,gem_single_sort.pl\n";
+		
+			if ( $runs{varfilter} == 1 ) {
+				print OUT "run\n";
+			}
+			else {
+				print OUT "#run\n";
+			}
 		}
-		else {
-			print OUT "#run\n";
-		}
+		
+		
 		
 		if($vcf == 1){
 			print OUT "
@@ -1126,10 +1153,10 @@ sub varfilter {
 	}
 }
 
-
+# DeepVariant runs natively for deepvariant caller and for gatk
 sub deepVariant {
 	
-	if ( $vcf == 2 && $libtype eq "genomic" && $organism eq "human" )
+	if ( ($vcf == 2 || $vcf == 3) && ( $libtype eq "genomic" || $libtype eq "exomic" ) && $organism eq "human" )
 	{
 		print OUT "
 ##############################################################
@@ -1140,7 +1167,7 @@ sub deepVariant {
 		print OUT "#infile\n";
 		print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/merged.rmdup.bam\n";
 		print OUT "# output directory\n";
-		print OUT "param : outdir : $outdir/$project/$sample/$folder/$subfolder/deepvariant\n";
+		print OUT "param : outdir : $outdir/$project/$sample/$folder/$subfolder/\n";
 		print OUT "# Sample name\n";
 		print OUT "param : s : $sample\n";
 		print OUT "# Sample type\n";
@@ -1150,7 +1177,6 @@ sub deepVariant {
 		print OUT "param : se : $settings\n";
 		print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
 		print OUT "dependson : bwa_merge_gatk.pl\n";
-		print OUT "slots : 8\n";
 		&printSlot("deepvariant");
 		
 		if ( $runs{deepvariant} == 1 ) {
@@ -1417,19 +1443,13 @@ sub annotateSNPs_sam {
 ";
 	if ( $vcf > 0 ) {
 		print OUT "#First, annotate known SNPs from dbSNP\n";
-		print OUT "pgr   : annotatedbSNP.pl\n"
-		  ;    #TW,Dec 2011: annotation of known dbSNPs now in extra script
-		if($vcf == 1){
-			print OUT "# infile\n";
-			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/ontarget.varfilter.vcf\n";
-		}elsif($vcf == 2){
-			print OUT "# infile\n";
-			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.vcf\n";
-		}
+		print OUT "pgr   : annotatedbSNP.pl\n";
+		print OUT "# infile\n";
+		print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".vcf\n";
 		print OUT "# settings\n";
 		print OUT "param : se : $settings\n\n";
 		print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
-		print OUT "dependson : vcfsorter.pl,filterVCFforRegion.pl,varfilter_vcf.pl,varfilter_gatk.pl,filterGATK.pl,varfilter_rna.pl\n";
+		print OUT "dependson : vcfsorter.pl,filterVCFforRegion.pl,varfilter_vcf.pl,varfilter_gatk.pl,filterGATK.pl,varfilter_rna.pl,varfilter_deepvariant.pl\n";
 		&printSlot("annotateSNPs");
 
 		if ( $runs{annotateSNPs} == 1 ) {
@@ -1439,26 +1459,19 @@ sub annotateSNPs_sam {
 			print OUT "#run\n";
 		}
 
-		print OUT "pgr   : annotateVCF.pl\n"
-		  ;    #TW,Oct 2011: annotation of snps and indels is now in one script
-		if($vcf == 1){
-			print OUT "# infile\n";
-			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/ontarget.varfilter.dbSNP.vcf\n";
-			print OUT "# outfile \n";
-			print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/ontarget.varfilter.dbSNP.plus.vcf\n";
-		}elsif($vcf == 2){
-			print OUT "# infile\n";
-			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.dbSNP.vcf\n";
-			print OUT "# outfile \n";
-			print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.dbSNP.plus.vcf\n";
-		}
+		print OUT "pgr   : annotateVCF.pl\n";
+		print OUT "# infile\n";
+		print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".dbSNP.vcf\n";
+		print OUT "# outfile \n";
+		print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".dbSNP.plus.vcf\n";
+		
 	}
 	print OUT "# settings\n";
 	print OUT "param : se : $settings\n";
 	print OUT "# size of window around splice sites [5]\n";
 	print OUT "param : w : 5\n";
 	print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
-	print OUT "dependson : vcfsorter.pl,filterVCFforRegion.pl,varfilter_vcf.pl,varfilter_gatk.pl,annotatedbSNP.pl,filterGATK.pl,varfilter_rna.pl\n";
+	print OUT "dependson : vcfsorter.pl,filterVCFforRegion.pl,varfilter_vcf.pl,varfilter_gatk.pl,annotatedbSNP.pl,filterGATK.pl,varfilter_rna.pl,varfilter_deepvariant.pl\n";
 	&printSlot("annotateSNPs");
 
 	if ( $runs{annotateSNPs} == 1 ) {
@@ -1478,17 +1491,10 @@ sub checkPileup {
 ##############################################################
 ";
 	print OUT "pgr   : filterSNPqual.pl\n";
-	if($vcf == 1){
-		print OUT "# input file\n";
-		print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/ontarget.varfilter.dbSNP.plus.vcf\n";
-		print OUT "# output file\n";
-		print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/ontarget.varfilter.dbSNP.plus.checked.vcf\n";
-	}elsif($vcf == 2){
-		print OUT "# input file\n";
-		print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.dbSNP.plus.vcf\n";
-		print OUT "# output file\n";
-		print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.dbSNP.plus.checked.vcf\n";
-	}
+	print OUT "# input file\n";
+	print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".dbSNP.plus.vcf\n";
+	print OUT "# output file\n";
+	print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".dbSNP.plus.checked.vcf\n";
 	print OUT "# settings\n";
 	print OUT "param : se : $settings\n";
 	print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
@@ -1509,7 +1515,7 @@ sub checkPileup {
 
 sub snvdbInsertExome {
 	
-	if( $vcf == 2 && $libtype eq "genomic" && $target ne ""){
+	if( ($vcf == 2 || $vcf == 3) && $libtype eq "genomic" && $target ne ""){
 		
 		print OUT "
 ##############################################################
@@ -1519,9 +1525,9 @@ sub snvdbInsertExome {
 		print OUT "\n\npgr   : filterVCFforRegion.pl\n";
 
 		print OUT "#infile\n";
-		print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.dbSNP.plus.checked.vcf\n";
+		print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".dbSNP.plus.checked.vcf\n";
 		print OUT "# output file\n";
-		print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/exome.gatk.ontarget.haplotypecaller.filtered.dbSNP.plus.checked.vcf\n";
+		print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/exome.".$vcfbasename.".dbSNP.plus.checked.vcf\n";
 		print OUT "# target file\n";
 		print OUT "param : t : $targetMarginBED\n";
 		print OUT "# settings\n";
@@ -1553,13 +1559,9 @@ sub snvdbInsertExome {
 	print OUT "# settings\n";
 	print OUT "param : se : $settings\n";
 
-	if ( $vcf == 1 ) {
-		print OUT "# delete only entries generated by samtools\n";
-		print OUT "param : c : samtools\n";
-	}elsif ($vcf == 2 ) {
-		print OUT "# delete only entries generated by gatk\n";
-		print OUT "param : c : gatk\n";
-	}
+	print OUT "# delete only entries generated by ".$variantcaller." \n";
+	print OUT "param : c : ". $variantcaller ." \n";
+
 	print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n"
 	  ; #start deleting when indel annotation is finished --> afterwards start inserting
 	print OUT "dependson : annotateVCF.pl\n";
@@ -1574,15 +1576,15 @@ sub snvdbInsertExome {
 
 
 	if ($libtype eq "genomic" && 
-		$vcf == 2 && 
+		($vcf == 2 || $vcf == 3 ) && 
 		$target eq "" && 
-		(($organism eq "human" || $organism eq "mouse")) ) {				#execute snvdbExomeImport_vcf.pl instead of snvdbExomeInsert_vcf.pl only if sample is a genome and is inserted into genomegatk db
+		(($organism eq "human" || ($organism eq "mouse" && $vcf == 2 ) )) ) {				#execute snvdbExomeImport_vcf.pl instead of snvdbExomeInsert_vcf.pl only if sample is a genome and is inserted into genomegatk db
 		print OUT "pgr   : snvdbExomeImport_vcf.pl\n";
 		print OUT "# input file\n";
-		print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.dbSNP.plus.checked.vcf\n";
+		print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".dbSNP.plus.checked.vcf\n";
 			
 		print OUT "# caller\n";
-		print OUT "param : c : gatk\n";
+		print OUT "param : c : ".$variantcaller."\n";
 		
 		print OUT "# settings\n";
 		print OUT "param : se : $settings\n";
@@ -1599,17 +1601,17 @@ sub snvdbInsertExome {
 		print OUT "pgr   : snvdbExomeInsert_vcf.pl\n";
 		if ($vcf == 1){
 			print OUT "# input file\n";
-			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/ontarget.varfilter.dbSNP.plus.checked.vcf\n";
-		}elsif ($vcf == 2){
+			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".dbSNP.plus.checked.vcf\n";
+		}elsif ($vcf == 2 || $vcf == 3){
 			print OUT "# input file\n";
 			if($libtype eq "genomic" && $target ne ""){
-				print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/exome.gatk.ontarget.haplotypecaller.filtered.dbSNP.plus.checked.vcf\n";
+				print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/exome.".$vcfbasename.".dbSNP.plus.checked.vcf\n";
 			}else{
-				print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.dbSNP.plus.checked.vcf\n";
+				print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".dbSNP.plus.checked.vcf\n";
 			}
 			
 			print OUT "# caller\n";
-			print OUT "param : c : gatk\n";
+			print OUT "param : c : ".$variantcaller."\n";
 		}
 		
 		print OUT "# settings\n";
@@ -1652,7 +1654,7 @@ sub snvdbInsertExome {
 
 
 sub callChrM {
-	if ( $vcf == 2 ) {
+	if ( $vcf == 2 || $vcf == 3) {		# chrM on GATK
 		print OUT "
 ##############################################################
 # run GATK HaplotypeCaller on chrM
@@ -1695,7 +1697,7 @@ sub callChrM {
 	
 }
 sub annotateChrM {
-	if ( $vcf == 2 ) {
+	if ( $vcf == 2 || $vcf == 3) {
 		print OUT "
 ##############################################################
 # annotate chrM VCF file
@@ -1720,7 +1722,7 @@ sub annotateChrM {
 	print OUT "# compare with additional SNP tables, default hg19\n";
 	print OUT "param : p : $projectdatabase\n";
 	print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
-	print OUT "dependson : varfilter_vcf.pl,varfilter_gatk.pl,annotatedbSNP.pl,vcfsorter.pl,filterGATK.pl,varfilter_rna.pl\n";
+	print OUT "dependson : varfilter_vcf.pl,varfilter_gatk.pl,annotatedbSNP.pl,vcfsorter.pl,filterGATK.pl,varfilter_rna.pl,varfilter_deepvariant.pl\n";
 	&printSlot("annotateChrM");
 
 	if ( $runs{annotateChrM} == 1 ) {
@@ -1745,7 +1747,7 @@ sub insertChrM {
 ##############################################################
 ";
 	if ($libtype eq "genomic" && 
-		$vcf == 2 && 
+		($vcf == 2 || $vcf == 3 )&& 
 		$target eq "" && 
 		(($organism eq "human" || $organism eq "mouse")) ) {				#execute snvdbExomeImport_vcf.pl instead of snvdbExomeInsert_vcf.pl only if sample is a genome and is inserted into genomegatk db
 		print OUT "pgr   : snvdbExomeImport_vcf.pl\n";
@@ -1766,7 +1768,7 @@ sub insertChrM {
 		else {
 			print OUT "#run\n\n";
 		}
-	} elsif ( $vcf == 2 ) {
+	} elsif ( $vcf == 2 || $vcf == 3 ) {
 		print OUT "pgr   : snvdbExomeInsert_vcf.pl\n";
 		print OUT "# input file\n";
 		print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/gatk.chrM.haplotypecaller.plus.vcf\n";
@@ -1857,7 +1859,7 @@ sub exomeDepth {
 		}
 		
 		if ($libtype eq "genomic" && 
-			$vcf == 2 && 
+			($vcf == 2 || $vcf == 3 ) && 
 			$target eq "" && 
 			(($organism eq "human" || $organism eq "mouse")) ) {				#execute snvdbExomeImport_vcf.pl instead of snvdbExomeInsert_vcf.pl only if sample is a genome and is inserted into genomegatk db
 			print OUT "pgr   : snvdbExomeImport_vcf.pl\n";
@@ -1900,7 +1902,7 @@ sub exomeDepth {
 		}
 		
 		if ($libtype eq "genomic" && 
-			$vcf == 2 && 
+			($vcf == 2  || $vcf == 3 )&& 
 			$target eq "" && 
 			(($organism eq "human" || $organism eq "mouse")) ) {				#execute snvdbExomeImport_vcf.pl instead of snvdbExomeInsert_vcf.pl only if sample is a genome and is inserted into genomegatk db
 			print OUT "pgr   : snvdbExomeImport_vcf.pl\n";
@@ -1959,12 +1961,12 @@ if ( $vcf > 0 ) {
 	if ($vcf == 1){
 		print OUT "# input file\n";
 		print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/ontarget.varfilter.dbSNP.plus.checked.vcf\n";
-	}elsif ($vcf == 2){
+	}elsif ($vcf == 2 || $vcf == 3){
 		print OUT "# input file\n";
 		if($libtype eq "genomic" && $target ne ""){
-			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/exome.gatk.ontarget.haplotypecaller.filtered.dbSNP.plus.checked.vcf\n";
+			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/exome.".$vcfbasename.".dbSNP.plus.checked.vcf\n";
 		}else{
-			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.dbSNP.plus.checked.vcf\n";
+			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".dbSNP.plus.checked.vcf\n";
 		}
 	}
 	
@@ -1986,12 +1988,12 @@ if ( $vcf > 0 ) {
 	if ($vcf == 1){
 		print OUT "# input file\n";
 		print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/ontarget.varfilter.dbSNP.plus.checked.snpEff.vcf\n";
-	}elsif ($vcf == 2){
+	}elsif ($vcf == 2 || $vcf == 3){
 		print OUT "# input file\n";
 		if($libtype eq "genomic" && $target ne ""){
-			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/exome.gatk.ontarget.haplotypecaller.filtered.dbSNP.plus.checked.snpEff.vcf\n";
+			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/exome.".$vcfbasename.".dbSNP.plus.checked.snpEff.vcf\n";
 		}else{
-			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.dbSNP.plus.checked.snpEff.vcf\n";
+			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".dbSNP.plus.checked.snpEff.vcf\n";
 		}
 	}
 	print OUT "# settings\n";
@@ -2010,12 +2012,8 @@ if ( $vcf > 0 ) {
 }
 }
 
-#################################################################################
-#
-# TW, 06.11.2013; Note that this script is part of the "insertDB" module of runs
-#                 since it requires the variants in the database to work properly
-#
-#################################################################################
+
+
 sub homozygosity {
 
 	print OUT "
@@ -2028,13 +2026,7 @@ sub homozygosity {
 	print OUT "param : s : $sample\n";
 	print OUT "# settings\n";
 	print OUT "param : se : $settings\n";
-	if ($vcf == 1){
-		print OUT "# input file\n";
-		print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/ontarget.varfilter.dbSNP.plus.checked.vcf\n";
-	}elsif ($vcf == 2){
-		print OUT "# input file\n";
-		print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.dbSNP.plus.checked.vcf\n";
-	}
+	print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".dbSNP.plus.checked.vcf\n";
 	print OUT "# outfile \n";
 	print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/homozygosity.out\n";
 	print OUT "# insert into db \n";
@@ -2069,22 +2061,11 @@ sub updateRefSeq {
 # annotating SNPs
 ##############################################################
 ";
-	if ($vcf == 1){
-		print OUT "pgr   : annotateVCF.pl\n"
-		  ;    #TW,Oct 2011: annotation of snps and indels is now in one script
-		print OUT "# infile\n";
-		print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/ontarget.varfilter.dbSNP.vcf\n";
-		print OUT "# outfile \n";
-		print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/ontarget.varfilter.dbSNP.refSeq.vcf\n";
-	}elsif ($vcf == 2){
-		print OUT "pgr   : annotateVCF.pl\n"		  ;    
-		print OUT "# infile\n";
-		
-		print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.dbSNP.vcf\n";
-		print OUT "# outfile \n";
-		print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.dbSNP.refSeq.vcf\n";
-				
-	}
+	print OUT "pgr   : annotateVCF.pl\n"		  ;    
+	print OUT "# infile\n";
+	print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".dbSNP.vcf\n";
+	print OUT "# outfile \n";
+	print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".dbSNP.refSeq.vcf\n";
 	print OUT "# settings\n";
 	print OUT "param : se : $settings\n";
 	print OUT "# use refSeq tables\n";
@@ -2094,7 +2075,7 @@ sub updateRefSeq {
 	print OUT "# compare with additional SNP tables, default hg19\n";
 	print OUT "param : p : $projectdatabase\n";
 	print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
-	print OUT "dependson : varfilter_vcf.pl,varfilter_gatk.pl,annotatedbSNP.pl,vcfsorter.pl,filterGATK.pl,varfilter_rna.pl\n";
+	print OUT "dependson : varfilter_vcf.pl,varfilter_gatk.pl,annotatedbSNP.pl,vcfsorter.pl,filterGATK.pl,varfilter_rna.pl,varfilter_deepvariant.pl\n";
 	&printSlot("RefSeq");
 
 	if ( $runs{RefSeq} == 1 && $organism eq "human" )
@@ -2114,7 +2095,7 @@ sub updateRefSeq {
 
 	
 		
-	if( $vcf == 2 && $libtype eq "genomic" && $target ne ""){
+	if( ($vcf == 2 || $vcf == 3) && $libtype eq "genomic" && $target ne ""){
 	
 		print OUT "
 		##############################################################
@@ -2124,9 +2105,9 @@ sub updateRefSeq {
 			print OUT "\n\npgr   : filterVCFforRegion.pl\n";
 
 			print OUT "#infile\n";
-			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.dbSNP.refSeq.vcf\n";
+			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".dbSNP.refSeq.vcf\n";
 			print OUT "# output file\n";
-			print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/exome.gatk.ontarget.haplotypecaller.filtered.dbSNP.refSeq.vcf\n";
+			print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/exome.".$vcfbasename.".dbSNP.refSeq.vcf\n";
 			print OUT "# target file\n";
 			print OUT "param : t : $targetMarginBED\n";
 			print OUT "# settings\n";
@@ -2149,12 +2130,12 @@ sub updateRefSeq {
 	if ($vcf == 1){
 		print OUT "# infile\n";
 		print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/ontarget.varfilter.dbSNP.refSeq.vcf\n";
-	}elsif ($vcf == 2){
+	}elsif ($vcf == 2 || $vcf == 3){
 		print OUT "# infile\n";
 		if($libtype eq "genomic" && $target ne ""){
-			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/exome.gatk.ontarget.haplotypecaller.filtered.dbSNP.refSeq.vcf\n";
+			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/exome.".$vcfbasename.".dbSNP.refSeq.vcf\n";
 		}else{
-			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.dbSNP.refSeq.vcf\n";
+			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".dbSNP.refSeq.vcf\n";
 		}
 							
 	}
@@ -2192,20 +2173,12 @@ sub updatelncRNA {
 ##############################################################
 ";
 
-		print OUT "pgr   : annotateVCF.pl\n"
-		  ;    #TW,Oct 2011: annotation of snps and indels is now in one script
-		if ($vcf == 1){
-			print OUT "# infile\n";
-			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/ontarget.varfilter.dbSNP.vcf\n";
-			print OUT "# outfile \n";
-			print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/ontarget.varfilter.dbSNP.lncRNA.vcf\n";
-		}elsif ($vcf == 2){
-			print OUT "# infile\n";
-			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.dbSNP.vcf\n";
-			print OUT "# outfile \n";
-			print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.dbSNP.lncRNA.vcf\n";
-					
-		}
+		print OUT "pgr   : annotateVCF.pl\n";
+		print OUT "# infile\n";
+		print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".dbSNP.vcf\n";
+		print OUT "# outfile \n";
+		print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".dbSNP.lncRNA.vcf\n";
+
 		print OUT "# settings\n";
 		print OUT "param : se : $settings\n";
 		print OUT "# use lncRNA tables\n";
@@ -2217,7 +2190,7 @@ sub updatelncRNA {
 		print OUT "# compare with additional SNP tables, default hg19\n";
 		print OUT "param : p : $projectdatabase\n";
 		print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
-		print OUT "dependson : varfilter_vcf.pl,varfilter_gatk.pl,annotatedbSNP.pl,filterGATK.pl,varfilter_rna.pl\n";
+		print OUT "dependson : varfilter_vcf.pl,varfilter_gatk.pl,annotatedbSNP.pl,filterGATK.pl,varfilter_rna.pl,varfilter_deepvariant.pl\n";
 		&printSlot("lncRNA");
 
 		if ( $runs{lncRNA} == 1 && $organism eq "human" )
@@ -2228,7 +2201,7 @@ sub updatelncRNA {
 			print OUT "#run\n";
 		}
 		
-		if( $vcf == 2 && $libtype eq "genomic" && $target ne ""){
+		if( ($vcf == 2 || $vcf == 3) && $libtype eq "genomic" && $target ne ""){
 		
 			print OUT "
 ##############################################################
@@ -2238,9 +2211,9 @@ sub updatelncRNA {
 			print OUT "\n\npgr   : filterVCFforRegion.pl\n";
 	
 			print OUT "#infile\n";
-			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.dbSNP.lncRNA.vcf\n";
+			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".dbSNP.lncRNA.vcf\n";
 			print OUT "# output file\n";
-			print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/exome.gatk.ontarget.haplotypecaller.filtered.dbSNP.lncRNA.vcf\n";
+			print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/exome.".$vcfbasename.".dbSNP.lncRNA.vcf\n";
 			print OUT "# target file\n";
 			print OUT "param : t : $targetMarginBED\n";
 			print OUT "# settings\n";
@@ -2268,12 +2241,12 @@ sub updatelncRNA {
 		if ($vcf == 1){
 			print OUT "# infile\n";
 			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/ontarget.varfilter.dbSNP.lncRNA.vcf\n";
-		}elsif ($vcf == 2){
+		}elsif ($vcf == 2 || $vcf == 3){
 			print OUT "# infile\n";
 			if($libtype eq "genomic" && $target ne ""){
-				print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/exome.gatk.ontarget.haplotypecaller.filtered.dbSNP.lncRNA.vcf\n";
+				print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/exome.".$vcfbasename.".dbSNP.lncRNA.vcf\n";
 			}else{
-				print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.dbSNP.lncRNA.vcf\n";
+				print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".dbSNP.lncRNA.vcf\n";
 			}
 					
 		}
@@ -2314,18 +2287,10 @@ sub updatemiRNA {
 ";
 
 		print OUT "pgr   : annotateVCF.pl\n";
-		if ($vcf == 1){
-			print OUT "# infile\n";
-			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/ontarget.varfilter.dbSNP.vcf\n";
-			print OUT "# outfile \n";
-			print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/ontarget.varfilter.dbSNP.miRNA.vcf\n";
-		}elsif ($vcf == 2){
-			print OUT "# infile\n";
-			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.dbSNP.vcf\n";
-			print OUT "# outfile \n";
-			print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.dbSNP.miRNA.vcf\n";
-					
-		}
+		print OUT "# infile\n";
+		print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".dbSNP.vcf\n";
+		print OUT "# outfile \n";
+		print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".dbSNP.miRNA.vcf\n";
 		print OUT "# settings\n";
 		print OUT "param : se : $settings\n";
 		print OUT "# use miRNA tables\n";
@@ -2337,7 +2302,7 @@ sub updatemiRNA {
 		print OUT "# compare with additional SNP tables, default hg19\n";
 		print OUT "param : p : $projectdatabase\n";
 		print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
-		print OUT "dependson : varfilter_vcf.pl,varfilter_gatk.pl,annotatedbSNP.pl,filterGATK.pl,varfilter_rna.pl\n";
+		print OUT "dependson : varfilter_vcf.pl,varfilter_gatk.pl,annotatedbSNP.pl,filterGATK.pl,varfilter_rna.pl,varfilter_deepvariant.pl\n";
 		&printSlot("miRNA");
 
 		if ( $runs{miRNA} == 1 && $organism eq "human" )
@@ -2348,7 +2313,7 @@ sub updatemiRNA {
 			print OUT "#run\n";
 		}
 		
-		if( $vcf == 2 && $libtype eq "genomic" && $target ne ""){
+		if( ($vcf == 2 || $vcf == 3 ) && $libtype eq "genomic" && $target ne ""){
 		
 			print OUT "
 ##############################################################
@@ -2358,9 +2323,9 @@ sub updatemiRNA {
 			print OUT "\n\npgr   : filterVCFforRegion.pl\n";
 	
 			print OUT "#infile\n";
-			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.dbSNP.miRNA.vcf\n";
+			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".dbSNP.miRNA.vcf\n";
 			print OUT "# output file\n";
-			print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/exome.gatk.ontarget.haplotypecaller.filtered.dbSNP.miRNA.vcf\n";
+			print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/exome.".$vcfbasename.".dbSNP.miRNA.vcf\n";
 			print OUT "# target file\n";
 			print OUT "param : t : $targetMarginBED\n";
 			print OUT "# settings\n";
@@ -2388,12 +2353,12 @@ sub updatemiRNA {
 		if ($vcf == 1){
 			print OUT "# infile\n";
 			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/ontarget.varfilter.dbSNP.miRNA.vcf\n";
-		}elsif ($vcf == 2){
+		}elsif ($vcf == 2 || $vcf == 3){
 			print OUT "# infile\n";
 			if($libtype eq "genomic" && $target ne ""){
-				print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/exome.gatk.ontarget.haplotypecaller.filtered.dbSNP.miRNA.vcf\n";
+				print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/exome.".$vcfbasename.".dbSNP.miRNA.vcf\n";
 			}else{
-				print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.filtered.dbSNP.miRNA.vcf\n";
+				print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".dbSNP.miRNA.vcf\n";
 			}
 					
 		}
@@ -2622,7 +2587,7 @@ print OUT "
 			if ( $libtype eq "mtDNA" ){
 				print OUT "param : t : $outdir/$project/$sample/$folder/$subfolder/gatk.chrM.haplotypecaller.vcf\n";
 			}else{
-				print OUT "param : t : $outdir/$project/$sample/$folder/$subfolder/gatk.ontarget.haplotypecaller.vcf\n";
+				print OUT "param : t : $outdir/$project/$sample/$folder/$subfolder/".$vcfbasename.".vcf\n";
 			}
 			print OUT "#minimize Pindel indels before filtering\n";
 			print OUT "param : m\n";
@@ -2646,7 +2611,7 @@ print OUT "
 		print OUT "# settings\n";
 		print OUT "param : se : $settings\n";
 		print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
-		print OUT "dependson : concatVCF.pl,filterVCFforRegion.pl,varfilter_gatk.pl,varfilter_vcf.pl,runPindel.pl,vcfsorter.pl,varfilter_rna.pl\n";
+		print OUT "dependson : concatVCF.pl,filterVCFforRegion.pl,varfilter_gatk.pl,varfilter_vcf.pl,runPindel.pl,vcfsorter.pl,varfilter_rna.pl,varfilter_deepvariant.pl\n";
 		&printSlot("filterPindel");
 		if ( $runs{filterPindel} == 1 ) {
 			print OUT "run\n";
@@ -2687,9 +2652,9 @@ print OUT "
 
 
 		if ($libtype eq "genomic" && 
-			$vcf == 2 && 
+			( $vcf == 2 || $vcf == 3 ) && 
 			$target eq "" && 
-			(($organism eq "human" || $organism eq "mouse")) ) {				#execute snvdbExomeImport_vcf.pl instead of snvdbExomeInsert_vcf.pl only if sample is a genome and is inserted into genomegatk db
+			(($organism eq "human" || ($organism eq "mouse" && $vcf==2) )) ) {				#execute snvdbExomeImport_vcf.pl instead of snvdbExomeInsert_vcf.pl only if sample is a genome and is inserted into genomegatk db
 			print OUT "pgr   : snvdbExomeImport_vcf.pl\n";
 			print OUT "# input file\n";
 			print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/filtered.genome.all.pindel.dbSNP.plus.vcf\n";
@@ -2953,6 +2918,61 @@ sub insertSV {
 			print OUT "#run\n";
 		}
 	}
+}
+
+
+
+
+sub expansionHunter {
+
+  if ( ( $vcf == 2 || $vcf == 3 ) && $libtype eq "genomic") {
+    print OUT "
+##############################################################
+# run ExpansionHunter
+##############################################################
+";
+		
+    make_path("$outdir/$project/$sample/$folder/$subfolder/expansionhunter", {				#create directory for single files
+				mode => 0775
+			}) if ( $runs{expansionHunter} == 1  );
+
+		print OUT "pgr   : runExpansionHunter.pl\n";
+		print OUT "# bamfile\n";
+		print OUT "param : b : $outdir/$project/$sample/$folder/$subfolder/merged.rmdup.bam\n";
+		print OUT "# settings\n";
+		print OUT "param : se : $settings\n";
+		print OUT "# sex\n";
+		print OUT "param : sx : $sex\n" if ( $sex eq "male" || $sex eq "female" );
+		print OUT "# output directory\n";
+		print OUT "param : o : $outdir/$project/$sample/$folder/$subfolder/expansionhunter\n";
+		print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
+		print OUT "dependson : bwa_merge_gatk.pl\n";
+		&printSlot("expansionHunter");
+		
+		if ( $runs{expansionHunter} == 1  ) { #&& $vcf == 1) {
+			print OUT "run\n";
+		}
+		else {
+			print OUT "#run\n";
+		}
+		#Also insert results into the databse
+		print OUT "pgr   : insertExpansionHunter.pl\n";
+		print OUT "# vcf-file\n";
+		print OUT "param : i : $outdir/$project/$sample/$folder/$subfolder/expansionhunter/expansionhunter.vcf\n";
+		print OUT "param : s : $sample\n"; 
+		print OUT "# settings\n";
+		print OUT "param : se : $settings\n";
+		print OUT "#Dependencies on other scripts --> jobs must have finished before this script can run\n";
+		print OUT "dependson : runExpansionHunter.pl\n";
+		&printSlot("insertExpansionHunter");
+		
+		if ( $runs{insertExpansionHunter} == 1  ) { #&& $vcf == 1) {
+			print OUT "run\n";
+		}
+		else {
+			print OUT "#run\n";
+		}
+  }
 }
 
 

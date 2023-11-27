@@ -132,7 +132,7 @@ my $isStrandedRNA = 0;
 
 pod2usage( {-exitval => 0  ,-verbose => 1} ) if $help;
 pod2usage( {-exitval => 0  ,-verbose => 2} ) if $man;
-pod2usage( {-exitval => 1  ,-verbose => 1} ) if $flowcell eq "" || ($version ne "vcf" && $version ne "gatk") ;
+pod2usage( {-exitval => 1  ,-verbose => 1} ) if $flowcell eq "" || ($version ne "vcf" && $version ne "gatk" && $version ne "deepvariant" ) ;
 pod2usage( {-exitval => 2  ,-verbose => 1} ) if ($version eq "vcf" && $removePhix ) ;
 
 
@@ -245,7 +245,7 @@ sub init {
 	my $flowcell = shift;
 
 	#if ( $flowcell =~ m/^\d+$/ || $flowcell =~ m/^.\d+$/ )
-	unless ( ($flowcell =~ m/XX$/ && ( length $flowcell ) == 9) || $isFlowcell || ($flowcell =~ m/XY$/ && ( length $flowcell ) == 9) || ($flowcell =~ m/X2$/ && ( length $flowcell ) == 9) || ($flowcell =~ m/X3$/ && ( length $flowcell ) == 9) || ( $flowcell =~ m/000000000\-/ && ( length $flowcell ) == 15)  )
+	unless ( ($flowcell =~ m/XX$/ && ( length $flowcell ) == 9) || $isFlowcell || ($flowcell =~ m/XY$/ && ( length $flowcell ) == 9) || ($flowcell =~ m/X2$/ && ( length $flowcell ) == 9) || ($flowcell =~ m/X[35]$/ && ( length $flowcell ) == 9) || ( $flowcell =~ m/000000000\-/ && ( length $flowcell ) == 15)  )
 	{   
 		
 		my $query = "select count(ltid) from libtype where ltlibtype='$libtype';";		#check if given libtype is OK
@@ -364,6 +364,7 @@ sub initSample {
 	my $settings     = "";
 	my $count        = 0;
 	my $globOrganism = "";
+	my $sex          = "";
 	
 	print STDERR "Sample: $sample\n";
 
@@ -371,7 +372,7 @@ sub initSample {
 	# EXTERNAL LIBRARIES
 	#TW 04.09.2013: first, look for external libraries
 	my $query =
-		"select library.lname, exomehg19.organism.orname, exomehg19.project.pname, exomehg19.project.pdescription, exomehg19.sample.analysis, ldescription, assay.name,lextfilepath
+		"select exomehg19.sample.sex, library.lname, exomehg19.organism.orname, exomehg19.project.pname, exomehg19.project.pdescription, exomehg19.sample.analysis, ldescription, assay.name,lextfilepath
 		from library
 			inner join sample2library on sample2library.lid=library.lid
 			inner join exomehg19.sample on exomehg19.sample.idsample=sample2library.idsample
@@ -390,7 +391,7 @@ sub initSample {
 
 	while (
 		my (
-			$lname,        $organism, $pname, $projectdiscr, $analysis,
+			$sexquery, $lname,        $organism, $pname, $projectdiscr, $analysis,
 			$ldescription, $lassay,   $lextfilepath
 		)
 		= $out->fetchrow_array
@@ -398,6 +399,7 @@ sub initSample {
 	{
 		$count++;
 		if ($debug) {
+			$sexquery     = "" unless $sexquery;
 			$lname        = "" unless $lname;
 			$organism     = "" unless $organism;
 			$pname        = "" unless $pname;
@@ -407,10 +409,12 @@ sub initSample {
 			$lassay       = "" unless $lassay;
 			$lextfilepath = "" unless $lextfilepath;
 
-			print "$lname, $organism, $projectdiscr, $analysis, $ldescription, $lassay, $lextfilepath\n";
+			print "$sexquery, $lname, $organism, $projectdiscr, $analysis, $ldescription, $lassay, $lextfilepath\n";
+			$sex = $sexquery;
 		}
 		else {
 			# Debug info
+			$sexquery     = "" unless $sexquery;
 			$lname        = "" unless $lname;
 			$organism     = "" unless $organism;
 			$pname        = "" unless $pname;
@@ -419,7 +423,9 @@ sub initSample {
 			$ldescription = "" unless $ldescription;
 			$lassay       = "" unless $lassay;
 			$lextfilepath = "" unless $lextfilepath;
-			print STDERR "\tExternal library found: $lname, $organism, $projectdiscr, $analysis, $ldescription, $lassay, $lextfilepath\n";
+			print STDERR "\tExternal library found: $sex, $lname, $organism, $projectdiscr, $analysis, $ldescription, $lassay, $lextfilepath\n";
+			
+			$sex = $sexquery;
 			
 			my @files = split( ",", $lextfilepath );
 			if(@files>1 && $libpair eq "paired-end"){		#if there are more than 1 files and it is a paired end library --> join R1 & R2 fastq files
@@ -484,7 +490,7 @@ sub initSample {
 
 	# LOOK FOR RUNS CONTAINING SAMPLE:
 	$query = "
-		select rname, rdaterun, library.lname, exomehg19.organism.orname, exomehg19.project.pname , exomehg19.project.pdescription, kit.cdescription,exomehg19.sample.analysis, group_concat(DISTINCT lane.alane SEPARATOR ' '), group_concat(DISTINCT rfailed), ldescription, assay.name
+		select exomehg19.sample.sex, rname, rdaterun, library.lname, exomehg19.organism.orname, exomehg19.project.pname , exomehg19.project.pdescription, kit.cdescription,exomehg19.sample.analysis, group_concat(DISTINCT lane.alane SEPARATOR ' '), group_concat(DISTINCT rfailed), ldescription, assay.name
 		from run 
 			left join lane on lane.rid=run.rid 
 			left join pool on lane.idpool=pool.idpool 
@@ -522,6 +528,7 @@ sub initSample {
 
 	while (
 		my (
+			$sexquery, 
 			$fc,           $rundate, $lname,    $organism, $pname,
 			$projectdiscr, $kit,     $analysis, $lane,
 			$rfailed,      $ldescription, $assay
@@ -544,6 +551,8 @@ sub initSample {
 			$assay		  = "" unless $assay;
 			print
 "$fc, $rundate, $lname, $organism, $projectdiscr, $kit, $analysis, $lane, $rfailed, $assay\n";
+
+			$sex = $sexquery;
 		}
 		else {
 			$fc           = "" unless $fc;
@@ -558,6 +567,8 @@ sub initSample {
 			$rfailed      = "" unless $rfailed;
 			$assay		  = "" unless $assay;
 			print STDERR "	Found data: $fc, $rundate, $lname, $organism, $projectdiscr, $kit, $analysis, $lane, $rfailed, $assay\n";
+			
+			$sex = $sexquery;
 			
 			push(@flowcells,$fc);
 			my $fcpath = qx/ls -d $runfolder\/*$fc\//;
@@ -933,7 +944,7 @@ qx/ls -d $fcpath\/Data\/Intensities\/BaseCalls\/GERALD* 2> \/dev\/null/;
 			}else{
 				if($settings eq "hg38") {
 					$projectfolder = $analysisparams->{dirs}->{hg38projectfolder};
-				} elsif($version eq "gatk"){
+				} elsif($version eq "gatk" || $version eq "deepvariant" ){
 					$projectfolder = $analysisparams->{dirs}->{projectfolder} . "plus";
 				}else{
 					$projectfolder = $analysisparams->{dirs}->{projectfolder};      #default
@@ -994,6 +1005,7 @@ qx/ls -d $fcpath\/Data\/Intensities\/BaseCalls\/GERALD* 2> \/dev\/null/;
 		print OUT "subfolder  :  $subfolder\n";
 		print OUT "settings   :  $settings\n";
 		print OUT "organism   :  $globOrganism\n";
+		print OUT "sex        :  $sex\n";
 		print OUT "#max insert size for bwa sampe\n";
 		print OUT "maxinssize :  $maxInsertSize\n";
 		print OUT "#version of the pipeline; currently \"vcf\" and \"gatk\" are valid options\n";
@@ -1016,7 +1028,7 @@ qx/ls -d $fcpath\/Data\/Intensities\/BaseCalls\/GERALD* 2> \/dev\/null/;
 			}else{
 				if($version eq "vcf"){
 					$aligner = "bwa";
-				}elsif($version eq "gatk"){
+				}elsif($version eq "gatk" || $version eq "deepvariant"){
 					$aligner = "bwamem";
 				}
 				
@@ -1440,6 +1452,7 @@ The current status of running analysis can then be viewed by typing: checkForNew
 
 =head1 AUTHOR
 
+Erik Tilch
 Thomas Wieland
 Riccardo Berutti
 

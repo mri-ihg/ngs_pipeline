@@ -50,6 +50,8 @@ my $rnaDB          = $params->{settings}->{$settings}->{rnadb}->{database};
 my $geneBasedTable = $params->{settings}->{$settings}->{rnadb}->{genebasedtable};
 my $geneTable	   = $params->{settings}->{$settings}->{exomedb}->{genetable};
 my $geneDB        = $params->{settings}->{$settings}->{exomedb}->{database};
+
+
 my $coreDB		   = $params->{coredb}->{database};
 my $sampleTable    = $params->{coredb}->{sampletable};
 
@@ -97,7 +99,9 @@ if ( $sth->rows < 1 ) {
 	exit(1);
 }
 
-#delete from snvsample table
+#TODO: check
+#delete from ?snv sample table
+## delete from gene based table 
 if ($delete) {
 	&deleteSampleEntries($idSample, $rnaDB . "." . $geneBasedTable);
 }
